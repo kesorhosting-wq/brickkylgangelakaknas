@@ -120,6 +120,9 @@ export interface SiteSettings {
   paymentSectionBgColor: string;
   paymentSectionBgImage: string;
   paymentSectionTextColor: string;
+  // Custom font settings
+  customKhmerFont: string;
+  customEnglishFont: string;
 }
 
 interface SiteContextType {
@@ -219,6 +222,9 @@ const defaultSettings: SiteSettings = {
   paymentSectionBgColor: '',
   paymentSectionBgImage: '',
   paymentSectionTextColor: '',
+  // Custom font defaults
+  customKhmerFont: '',
+  customEnglishFont: '',
 };
 
 const defaultPaymentMethods: PaymentMethod[] = [
@@ -334,6 +340,9 @@ export const SiteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           // Payment methods are now static (ABA, Wing, KHQR), skip loading from site_settings
           if (row.key === 'siteIcon') loadedSettings.siteIcon = row.value as string;
           if (row.key === 'browserTitle') loadedSettings.browserTitle = row.value as string;
+          // Custom fonts
+          if (row.key === 'customKhmerFont') loadedSettings.customKhmerFont = row.value as string;
+          if (row.key === 'customEnglishFont') loadedSettings.customEnglishFont = row.value as string;
         });
         setSettings(prev => ({ ...prev, ...loadedSettings }));
       }
