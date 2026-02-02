@@ -134,6 +134,7 @@ export type Database = {
       games: {
         Row: {
           created_at: string
+          default_package_icon: string | null
           description: string | null
           g2bulk_category_id: string | null
           id: string
@@ -145,6 +146,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
+          default_package_icon?: string | null
           description?: string | null
           g2bulk_category_id?: string | null
           id?: string
@@ -156,6 +158,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
+          default_package_icon?: string | null
           description?: string | null
           g2bulk_category_id?: string | null
           id?: string

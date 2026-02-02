@@ -1258,6 +1258,7 @@ const TopupPage: React.FC = () => {
                       selected={selectedPackage === pkg.id}
                       onSelect={() => setSelectedPackage(pkg.id)}
                       priority={index < 4}
+                      gameDefaultIcon={game.defaultPackageIcon}
                     />
                   ))}
               </div>
@@ -1297,6 +1298,7 @@ const TopupPage: React.FC = () => {
                       selected={selectedPackage === pkg.id}
                       onSelect={() => setSelectedPackage(pkg.id)}
                       priority={index < 6}
+                      gameDefaultIcon={game.defaultPackageIcon}
                     />
                   ))}
               </div>

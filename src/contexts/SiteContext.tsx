@@ -11,6 +11,7 @@ export interface Game {
   packages: Package[];
   specialPackages: Package[];
   g2bulkCategoryId?: string;
+  defaultPackageIcon?: string;
 }
 
 export interface Package {
@@ -344,6 +345,7 @@ export const SiteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           slug: (game as any).slug || game.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-'),
           image: game.image || '',
           g2bulkCategoryId: (game as any).g2bulk_category_id || undefined,
+          defaultPackageIcon: (game as any).default_package_icon || undefined,
           packages: (packagesData || [])
             .filter(pkg => pkg.game_id === game.id)
             .map(pkg => ({
@@ -406,6 +408,7 @@ export const SiteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           slug: (game as any).slug || game.name.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-'),
           image: game.image || '',
           g2bulkCategoryId: (game as any).g2bulk_category_id || undefined,
+          defaultPackageIcon: (game as any).default_package_icon || undefined,
           packages: (packagesData || [])
             .filter(pkg => pkg.game_id === game.id)
             .map(pkg => ({
@@ -504,6 +507,7 @@ export const SiteProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       if (updatedGame.image !== undefined) updateData.image = updatedGame.image;
       if (updatedGame.slug !== undefined) updateData.slug = updatedGame.slug;
       if (updatedGame.g2bulkCategoryId !== undefined) updateData.g2bulk_category_id = updatedGame.g2bulkCategoryId || null;
+      if (updatedGame.defaultPackageIcon !== undefined) updateData.default_package_icon = updatedGame.defaultPackageIcon || null;
 
       const { error } = await supabase
         .from('games')

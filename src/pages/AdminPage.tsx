@@ -92,11 +92,12 @@ const AdminPage: React.FC = () => {
   // Game state
   const [editingGame, setEditingGame] = useState<string | null>(null);
   const [newGame, setNewGame] = useState({ name: "", slug: "", image: "", g2bulkCategoryId: "" });
-  const [editGameData, setEditGameData] = useState<{ name: string; slug: string; image: string; g2bulkCategoryId: string }>({
+  const [editGameData, setEditGameData] = useState<{ name: string; slug: string; image: string; g2bulkCategoryId: string; defaultPackageIcon: string }>({
     name: "",
     slug: "",
     image: "",
     g2bulkCategoryId: "",
+    defaultPackageIcon: "",
   });
 
   // Package state
@@ -195,6 +196,7 @@ const AdminPage: React.FC = () => {
       slug: game.slug,
       image: game.image,
       g2bulkCategoryId: game.g2bulkCategoryId || "",
+      defaultPackageIcon: game.defaultPackageIcon || "",
     });
   };
 
@@ -204,6 +206,7 @@ const AdminPage: React.FC = () => {
       slug: editGameData.slug,
       image: editGameData.image,
       g2bulkCategoryId: editGameData.g2bulkCategoryId || undefined,
+      defaultPackageIcon: editGameData.defaultPackageIcon || undefined,
     });
     setEditingGame(null);
     toast({ title: "Game updated!" });
@@ -1697,6 +1700,16 @@ const AdminPage: React.FC = () => {
                                   setEditGameData((prev) => ({ ...prev, g2bulkCategoryId: catId || "" }))
                                 }
                                 placeholder="Link to G2Bulk..."
+                              />
+                            </div>
+                            <div className="w-20">
+                              <label className="text-xs text-muted-foreground mb-1 block">Default Package Icon</label>
+                              <ImageUpload
+                                value={editGameData.defaultPackageIcon}
+                                onChange={(url) => setEditGameData((prev) => ({ ...prev, defaultPackageIcon: url }))}
+                                folder="package-icons"
+                                aspectRatio="square"
+                                placeholder="Icon"
                               />
                             </div>
                           </div>
