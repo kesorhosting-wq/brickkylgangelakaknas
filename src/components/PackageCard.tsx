@@ -10,6 +10,7 @@ interface PackageCardProps {
   selected: boolean;
   onSelect: () => void;
   priority?: boolean; // If true, load immediately (above the fold)
+  gameDefaultIcon?: string; // Game-specific default icon
 }
 
 // Preload image and cache it
@@ -34,7 +35,7 @@ const preloadImage = (src: string): Promise<boolean> => {
   });
 };
 
-const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect, priority = false }) => {
+const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect, priority = false, gameDefaultIcon }) => {
   const { settings } = useSite();
   const isMobile = useIsMobile();
   const [iconLoaded, setIconLoaded] = useState(false);
@@ -47,8 +48,8 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect, prio
     ? (settings.packageIconSizeMobile || 50) 
     : (settings.packageIconSizeDesktop || 32);
 
-  // Determine which icon to use: package icon > global icon > default emoji
-  const iconSrc = pkg.icon || settings.packageIconUrl;
+  // Determine which icon to use: package icon > game default icon > global icon > default emoji
+  const iconSrc = pkg.icon || gameDefaultIcon || settings.packageIconUrl;
   
   // Intersection Observer for lazy loading
   useEffect(() => {
