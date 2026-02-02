@@ -13,15 +13,19 @@ interface GameCardProps {
   cardFrameImage?: string;
   cardBorderImage?: string;
   priority?: boolean;
+  index?: number;
 }
 
-const GameCard: React.FC<GameCardProps> = ({ game, cardBgColor, cardBorderColor, cardFrameImage, cardBorderImage, priority = false }) => {
+const GameCard: React.FC<GameCardProps> = ({ game, cardBgColor, cardBorderColor, cardFrameImage, cardBorderImage, priority = false, index = 0 }) => {
   const [imageLoaded, setImageLoaded] = useState(false);
   const frameColor = cardBorderColor || 'hsl(43 74% 49%)';
   const bgColor = cardBgColor || 'hsl(43 74% 70% / 0.15)';
   
   return (
-    <div className="group block">
+    <div 
+      className="group block animate-fade-in"
+      style={{ animationDelay: `${index * 50}ms`, animationFillMode: 'both' }}
+    >
       <div className="relative">
         {/* Modern card with glass effect */}
         <div 
@@ -58,22 +62,15 @@ const GameCard: React.FC<GameCardProps> = ({ game, cardBgColor, cardBorderColor,
               )}
             />
             
-            {/* Overlay gradient */}
-            <div className="absolute inset-0 bg-gradient-to-t from-background/90 via-transparent to-transparent opacity-60" />
-            
-            {/* Game name overlay */}
-            <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4">
-              <h3 className="font-khmer text-sm sm:text-base font-bold text-foreground line-clamp-2 drop-shadow-lg">
-                {game.name}
-              </h3>
-            </div>
-            
             {/* Shimmer effect */}
             <div className="absolute inset-0 bg-gradient-to-tr from-gold/0 via-gold/10 to-gold/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
           </div>
           
-          {/* Topup Button */}
-          <div className="p-3 sm:p-4 pt-2">
+          {/* Game name and Topup Button */}
+          <div className="p-3 sm:p-4 space-y-2">
+            <h3 className="font-khmer text-sm sm:text-base font-bold text-foreground line-clamp-1 text-center">
+              {game.name}
+            </h3>
             <Link to={`/topup/${game.slug}`} className="block">
               <Button 
                 className="w-full gap-2 bg-gradient-to-r from-gold to-gold-dark hover:from-gold-dark hover:to-gold text-background font-semibold transition-all duration-300 shadow-lg hover:shadow-gold/30"
