@@ -42,27 +42,37 @@ const Index: React.FC = () => {
         />
         
         {/* Games Section */}
-        <section className="container mx-auto px-3 sm:px-4 py-4 sm:py-8 flex-1">
+        <section className="container mx-auto px-3 sm:px-4 py-6 sm:py-12 flex-1">
           {/* Section Title */}
-          <div className="text-center mb-4 sm:mb-8">
-            <h2 className="font-khmer text-lg sm:text-2xl md:text-3xl font-bold text-foreground mb-2">
+          <div className="text-center mb-6 sm:mb-10">
+            <span className="inline-block px-4 py-1.5 mb-3 text-xs font-medium tracking-wider uppercase bg-gold/10 text-gold rounded-full border border-gold/20">
+              Popular Games
+            </span>
+            <h2 className="font-khmer text-xl sm:text-3xl md:text-4xl font-bold text-foreground mb-3">
               {settings.heroText}
             </h2>
-            <div className="w-32 sm:w-48 h-1 mx-auto bg-gradient-to-r from-transparent via-gold to-transparent" />
+            <div className="w-24 sm:w-32 h-1 mx-auto bg-gradient-to-r from-transparent via-gold to-transparent rounded-full" />
           </div>
           
           {/* Games Grid */}
           {isLoading ? (
-            <div className="flex justify-center py-8 sm:py-12">
-              <Loader2 className="w-6 h-6 sm:w-8 sm:h-8 animate-spin text-gold" />
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 max-w-6xl mx-auto">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="aspect-square rounded-2xl bg-muted animate-pulse" />
+              ))}
             </div>
           ) : games.length === 0 ? (
-            <div className="text-center py-8 sm:py-12 text-muted-foreground text-sm sm:text-base">
-              No games available yet. Add games from the admin panel.
+            <div className="text-center py-12 sm:py-16">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+                <Loader2 className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground text-sm sm:text-base">
+                No games available yet. Add games from the admin panel.
+              </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6 max-w-5xl mx-auto">
-              {games.map((game) => (
+            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 max-w-6xl mx-auto">
+              {games.map((game, index) => (
                 <GameCard 
                   key={game.id} 
                   game={game}
@@ -70,6 +80,7 @@ const Index: React.FC = () => {
                   cardBorderColor={settings.gameCardBorderColor}
                   cardFrameImage={settings.gameCardFrameImage}
                   cardBorderImage={settings.gameCardBorderImage}
+                  priority={index < 4}
                 />
               ))}
             </div>
