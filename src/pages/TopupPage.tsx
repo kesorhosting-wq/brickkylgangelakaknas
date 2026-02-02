@@ -1251,12 +1251,13 @@ const TopupPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 {[...game.specialPackages]
                   .sort((a, b) => a.price - b.price)
-                  .map((pkg) => (
+                  .map((pkg, index) => (
                     <PackageCard
                       key={pkg.id}
                       pkg={pkg}
                       selected={selectedPackage === pkg.id}
                       onSelect={() => setSelectedPackage(pkg.id)}
+                      priority={index < 4}
                     />
                   ))}
               </div>
@@ -1289,12 +1290,13 @@ const TopupPage: React.FC = () => {
               <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 {[...game.packages]
                   .sort((a, b) => a.price - b.price)
-                  .map((pkg) => (
+                  .map((pkg, index) => (
                     <PackageCard
                       key={pkg.id}
                       pkg={pkg}
                       selected={selectedPackage === pkg.id}
                       onSelect={() => setSelectedPackage(pkg.id)}
+                      priority={index < 6}
                     />
                   ))}
               </div>

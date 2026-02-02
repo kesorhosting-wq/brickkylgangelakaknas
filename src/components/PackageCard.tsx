@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { Package } from '@/contexts/SiteContext';
 import { useSite } from '@/contexts/SiteContext';
@@ -9,6 +9,7 @@ interface PackageCardProps {
   pkg: Package;
   selected: boolean;
   onSelect: () => void;
+  priority?: boolean; // If true, load immediately (above the fold)
 }
 
 // Preload image and cache it
@@ -33,11 +34,13 @@ const preloadImage = (src: string): Promise<boolean> => {
   });
 };
 
-const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect }) => {
+const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect, priority = false }) => {
   const { settings } = useSite();
   const isMobile = useIsMobile();
   const [iconLoaded, setIconLoaded] = useState(false);
   const [iconError, setIconError] = useState(false);
+  const [isVisible, setIsVisible] = useState(priority);
+  const cardRef = useRef<HTMLButtonElement>(null);
   
   // Get icon sizes from settings with defaults - use appropriate size based on screen
   const iconSize = isMobile 
@@ -47,26 +50,49 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect }) =>
   // Determine which icon to use: package icon > global icon > default emoji
   const iconSrc = pkg.icon || settings.packageIconUrl;
   
-  // Preload icon on mount
+  // Intersection Observer for lazy loading
   useEffect(() => {
-    if (iconSrc) {
-      // Check cache first
-      if (imageCache.has(iconSrc)) {
-        setIconLoaded(true);
-        setIconError(!imageCache.get(iconSrc));
-      } else {
-        preloadImage(iconSrc).then((success) => {
-          setIconLoaded(true);
-          setIconError(!success);
-        });
-      }
-    } else {
-      setIconLoaded(true); // No icon to load, show emoji
+    if (priority || !cardRef.current) {
+      setIsVisible(true);
+      return;
     }
-  }, [iconSrc]);
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '100px', threshold: 0 }
+    );
+
+    observer.observe(cardRef.current);
+    return () => observer.disconnect();
+  }, [priority]);
+  
+  // Preload icon when visible
+  useEffect(() => {
+    if (!isVisible || !iconSrc) {
+      if (!iconSrc) setIconLoaded(true);
+      return;
+    }
+    
+    // Check cache first
+    if (imageCache.has(iconSrc)) {
+      setIconLoaded(true);
+      setIconError(!imageCache.get(iconSrc));
+    } else {
+      preloadImage(iconSrc).then((success) => {
+        setIconLoaded(true);
+        setIconError(!success);
+      });
+    }
+  }, [iconSrc, isVisible]);
   
   return (
     <button
+      ref={cardRef}
       onClick={onSelect}
       className={cn(
         "relative w-full overflow-hidden transition-all duration-300",
@@ -121,8 +147,8 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect }) =>
       >
         {/* Left section with icon */}
         <div className="flex items-center px-2 sm:px-3">
-          {/* Show skeleton while loading */}
-          {!iconLoaded ? (
+          {/* Show skeleton while loading or not visible */}
+          {!isVisible || !iconLoaded ? (
             <Skeleton 
               className="rounded-md flex-shrink-0"
               style={{
@@ -139,7 +165,7 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect }) =>
                 width: `${iconSize}px`,
                 height: `${iconSize}px`,
               }}
-              loading="eager"
+              loading={priority ? "eager" : "lazy"}
               decoding="async"
             />
           ) : (
