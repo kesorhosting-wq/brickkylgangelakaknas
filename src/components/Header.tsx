@@ -113,9 +113,9 @@ const Header: React.FC = () => {
           <div className="hidden sm:flex items-center gap-2 sm:gap-3">
             {/* Cart Icon */}
             <Link 
-              to="/cart" 
+              to="/checkout" 
               className="relative p-2 rounded-lg border-2 border-gold/50 bg-card hover:bg-gold/20 transition-colors"
-              title="កន្ត្រក"
+              title="បង់ប្រាក់"
             >
               <ShoppingCart className="w-5 h-5 text-gold" />
               {cartItemCount > 0 && (
@@ -175,9 +175,9 @@ const Header: React.FC = () => {
           <div className="flex sm:hidden items-center gap-2">
             {/* Cart Icon */}
             <Link 
-              to="/cart" 
+              to="/checkout" 
               className="relative p-2 rounded-lg border-2 border-gold/50 bg-card hover:bg-gold/20 transition-colors"
-              title="កន្ត្រក"
+              title="បង់ប្រាក់"
             >
               <ShoppingCart className="w-5 h-5 text-gold" />
               {cartItemCount > 0 && (
