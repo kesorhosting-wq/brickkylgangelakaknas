@@ -28,6 +28,7 @@ import {
   Shield,
   Star,
   Database,
+  Type,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -54,6 +55,7 @@ import G2BulkDebugLogs from "@/components/admin/G2BulkDebugLogs";
 import PackageStockBadge from "@/components/admin/PackageStockBadge";
 import AIGameImageGenerator, { AIBulkImageGenerator } from "@/components/admin/AIGameImageGenerator";
 import DatabaseExportImport from "@/components/admin/DatabaseExportImport";
+import FontSettingsTab from "@/components/admin/FontSettingsTab";
 import { useG2BulkProductStatus } from "@/hooks/useG2BulkProductStatus";
 
 const AdminPage: React.FC = () => {
@@ -393,13 +395,20 @@ const AdminPage: React.FC = () => {
 
         <div className="container mx-auto px-4 py-6">
           <Tabs defaultValue="settings" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-9 bg-card border border-border">
+            <TabsList className="grid w-full grid-cols-10 bg-card border border-border">
               <TabsTrigger
                 value="settings"
                 className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
                 <Settings className="w-4 h-4 sm:mr-2" />
                 <span className="hidden sm:inline">Site</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="fonts"
+                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+              >
+                <Type className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Fonts</span>
               </TabsTrigger>
               <TabsTrigger
                 value="home-edit"
@@ -2657,6 +2666,11 @@ const AdminPage: React.FC = () => {
             {/* Database Backup */}
             <TabsContent value="backup">
               <DatabaseExportImport />
+            </TabsContent>
+
+            {/* Font Settings */}
+            <TabsContent value="fonts">
+              <FontSettingsTab />
             </TabsContent>
           </Tabs>
         </div>
