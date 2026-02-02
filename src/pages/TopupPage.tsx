@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, memo } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ArrowLeft, CheckCircle, Loader2, UserCheck, XCircle } from "lucide-react";
@@ -7,6 +7,7 @@ import PackageCard from "@/components/PackageCard";
 import KhmerFrame from "@/components/KhmerFrame";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useSite } from "@/contexts/SiteContext";
 import { useCart } from "@/contexts/CartContext";
 import { useFavicon } from "@/hooks/useFavicon";
@@ -1277,18 +1278,27 @@ const TopupPage: React.FC = () => {
               <h2 className="font-khmer text-base sm:text-lg font-bold">ជ្រើសរើសតម្លៃពេជ្រ</h2>
             </div>
 
-            <div className="grid grid-cols-2 gap-2 sm:gap-4">
-              {[...game.packages]
-                .sort((a, b) => a.price - b.price)
-                .map((pkg) => (
-                  <PackageCard
-                    key={pkg.id}
-                    pkg={pkg}
-                    selected={selectedPackage === pkg.id}
-                    onSelect={() => setSelectedPackage(pkg.id)}
-                  />
+            {game.packages.length === 0 ? (
+              /* Show skeleton placeholders while packages might be loading */
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <Skeleton key={i} className="h-12 sm:h-14 rounded-lg" />
                 ))}
-            </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                {[...game.packages]
+                  .sort((a, b) => a.price - b.price)
+                  .map((pkg) => (
+                    <PackageCard
+                      key={pkg.id}
+                      pkg={pkg}
+                      selected={selectedPackage === pkg.id}
+                      onSelect={() => setSelectedPackage(pkg.id)}
+                    />
+                  ))}
+              </div>
+            )}
           </div>
 
           {/* Step 3: Payment Method */}
