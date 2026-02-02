@@ -1,4 +1,4 @@
-import React, { useState, useEffect, memo } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Package } from '@/contexts/SiteContext';
 import { useSite } from '@/contexts/SiteContext';
@@ -33,7 +33,7 @@ const preloadImage = (src: string): Promise<boolean> => {
   });
 };
 
-const PackageCard: React.FC<PackageCardProps> = memo(({ pkg, selected, onSelect }) => {
+const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect }) => {
   const { settings } = useSite();
   const isMobile = useIsMobile();
   const [iconLoaded, setIconLoaded] = useState(false);
@@ -209,8 +209,6 @@ const PackageCard: React.FC<PackageCardProps> = memo(({ pkg, selected, onSelect 
       </div>
     </button>
   );
-});
-
-PackageCard.displayName = 'PackageCard';
+};
 
 export default PackageCard;
