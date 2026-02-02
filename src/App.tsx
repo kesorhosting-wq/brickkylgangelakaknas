@@ -10,7 +10,6 @@ import { CartProvider } from "@/contexts/CartContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import Index from "./pages/Index";
 import TopupPage from "./pages/TopupPage";
-import CartPage from "./pages/CartPage";
 import CheckoutPage from "./pages/CheckoutPage";
 import InvoicePage from "./pages/InvoicePage";
 import OrderHistoryPage from "./pages/OrderHistoryPage";
@@ -33,7 +32,6 @@ const App = () => (
                 <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/topup/:gameSlug" element={<TopupPage />} />
-                <Route path="/cart" element={<CartPage />} />
                 <Route path="/checkout" element={<CheckoutPage />} />
                 <Route path="/invoice/:orderId" element={<InvoicePage />} />
                 <Route path="/orders" element={<OrderHistoryPage />} />
