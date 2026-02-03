@@ -261,7 +261,7 @@ const KHQRPaymentCard = ({
             <img
               src={qrCode}
               alt="KHQR Payment Code"
-              className="w-56 h-56 sm:w-64 sm:h-64 object-contain"
+              className="w-64 h-64 object-contain"
             />
           </div>
 
