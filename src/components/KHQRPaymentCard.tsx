@@ -112,7 +112,10 @@ const KHQRPaymentCard = ({
           const newStatus = (payload.new as any)?.status;
           console.log(`[Realtime] Order ${orderId} status changed to: ${newStatus}`);
 
-          if (newStatus === 'paid' || newStatus === 'completed' || newStatus === 'processing') {
+          // Detect any success status - paid, processing, or completed
+          const successStatuses = ['paid', 'processing', 'completed'];
+          if (successStatuses.includes(newStatus)) {
+            console.log(`[Realtime] Payment success detected! Status: ${newStatus}`);
             handlePaymentSuccess();
           }
         }
@@ -163,8 +166,11 @@ const KHQRPaymentCard = ({
         .eq("id", orderId)
         .single();
 
-      if (order?.status === "completed" || order?.status === "paid") {
-        await handlePaymentSuccess();
+      // Check for any success status
+      const successStatuses = ['paid', 'processing', 'completed'];
+      if (order?.status && successStatuses.includes(order.status)) {
+        console.log(`[Poll] Payment success detected! Status: ${order.status}`);
+        handlePaymentSuccess();
       } else if (!silent) {
         toast({
           title: "ការបង់ប្រាក់មិនទាន់ទទួល",
