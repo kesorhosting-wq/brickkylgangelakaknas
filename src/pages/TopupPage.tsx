@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { ArrowLeft, CheckCircle, Loader2, UserCheck, XCircle } from "lucide-react";
 import Header from "@/components/Header";
+import HeaderSpacer from "@/components/HeaderSpacer";
 import PackageCard from "@/components/PackageCard";
 import KhmerFrame from "@/components/KhmerFrame";
 import { Button } from "@/components/ui/button";
@@ -982,13 +983,8 @@ const TopupPage: React.FC = () => {
       g2bulkTypeId: pkg.g2bulkTypeId,
     });
 
-    toast({
-      title: "✓ បានបន្ថែមទៅកន្ត្រក!",
-      description: `${pkg.name} សម្រាប់ ${verifiedUser.username}`,
-    });
-
-    // Navigate to cart
-    navigate("/cart");
+    // Navigate directly to checkout
+    navigate("/checkout");
   };
 
   return (
@@ -1014,6 +1010,7 @@ const TopupPage: React.FC = () => {
         }}
       >
         <Header />
+        <HeaderSpacer />
 
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 max-w-2xl">
           {/* Back button */}

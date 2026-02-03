@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
+import HeaderSpacer from "@/components/HeaderSpacer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -155,6 +156,7 @@ const CheckoutPage = () => {
           }}
         >
           <Header />
+          <HeaderSpacer />
 
           <div className="container mx-auto px-4 py-12 max-w-lg">
             <Card className="text-center">
@@ -195,6 +197,7 @@ const CheckoutPage = () => {
         }}
       >
         <Header />
+        <HeaderSpacer />
 
         <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6">
           <Link

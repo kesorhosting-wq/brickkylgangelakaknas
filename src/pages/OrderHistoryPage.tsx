@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
+import HeaderSpacer from "@/components/HeaderSpacer";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -119,6 +120,7 @@ const OrderHistoryPage = () => {
         </Helmet>
         <div className="min-h-screen pb-8">
           <Header />
+          <HeaderSpacer />
           <div className="container mx-auto px-4 py-12 max-w-lg">
             <Card className="text-center">
               <CardContent className="py-8">
@@ -157,6 +159,7 @@ const OrderHistoryPage = () => {
         }}
       >
         <Header />
+        <HeaderSpacer />
         
         <div className="container mx-auto px-4 py-6 max-w-4xl">
           <div className="flex items-center justify-between mb-6">
