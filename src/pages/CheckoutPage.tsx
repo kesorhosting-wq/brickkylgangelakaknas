@@ -240,10 +240,9 @@ const CheckoutPage = () => {
                         👤 {item.playerName} ({item.playerId}
                         {item.serverId ? ` - ${item.serverId}` : ""})
                       </p>
-                      <p className="text-xs text-muted-foreground">x{item.quantity}</p>
                     </div>
                     <Badge variant="secondary" className="flex-shrink-0">
-                      ${(item.price * item.quantity).toFixed(2)}
+                      ${item.price.toFixed(2)}
                     </Badge>
                   </div>
                 ))}
