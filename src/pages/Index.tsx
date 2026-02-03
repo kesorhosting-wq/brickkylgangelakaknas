@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Helmet } from 'react-helmet-async';
 import Header from '@/components/Header';
+import HeaderSpacer from '@/components/HeaderSpacer';
 import HeroBanner from '@/components/HeroBanner';
 import GameCard from '@/components/GameCard';
 import Footer from '@/components/Footer';
@@ -46,6 +47,7 @@ const Index: React.FC = () => {
           <div className="fixed inset-0 bg-background/80 -z-10" />
         )}
         <Header />
+        <HeaderSpacer />
         
         <HeroBanner 
           bannerImage={settings.bannerImage} 

@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
+import HeaderSpacer from "@/components/HeaderSpacer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -178,6 +179,7 @@ const InvoicePage = () => {
         </Helmet>
         <div className="min-h-screen pb-8">
           <Header />
+          <HeaderSpacer />
           <div className="container mx-auto px-4 py-12 max-w-lg">
             <Card className="text-center">
               <CardContent className="py-8">
@@ -220,6 +222,7 @@ const InvoicePage = () => {
       >
         <div className="print:hidden">
           <Header />
+          <HeaderSpacer />
         </div>
         
         <div className="container mx-auto px-4 py-6 max-w-2xl">

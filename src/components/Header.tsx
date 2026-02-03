@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Settings, Receipt, ShoppingCart, User, Menu, LogOut, Home } from 'lucide-react';
-import { useCart } from '@/contexts/CartContext';
+import { Settings, Receipt, User, Menu, LogOut, Home } from 'lucide-react';
 import { useSite } from '@/contexts/SiteContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -18,9 +17,6 @@ const Header: React.FC = () => {
   const isMobile = useIsMobile();
   const { settings } = useSite();
   const { user, isAdmin, signOut } = useAuth();
-  const { items } = useCart();
-
-  const cartItemCount = items.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleSignOut = async () => {
     await signOut();
@@ -33,7 +29,7 @@ const Header: React.FC = () => {
 
   return (
     <header 
-      className="relative px-3 sm:px-4 flex items-center"
+      className="fixed top-0 left-0 right-0 z-50 px-3 sm:px-4 flex items-center bg-background"
       style={{
         height: `${headerHeight}px`,
         backgroundImage: settings.headerImage ? `url(${settings.headerImage})` : undefined,
@@ -111,19 +107,6 @@ const Header: React.FC = () => {
           
           {/* Desktop Navigation */}
           <div className="hidden sm:flex items-center gap-2 sm:gap-3">
-            {/* Cart Icon */}
-            <Link 
-              to="/checkout" 
-              className="relative p-2 rounded-lg border-2 border-gold/50 bg-card hover:bg-gold/20 transition-colors"
-              title="បង់ប្រាក់"
-            >
-              <ShoppingCart className="w-5 h-5 text-gold" />
-              {cartItemCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center">
-                  {cartItemCount > 9 ? '9+' : cartItemCount}
-                </span>
-              )}
-            </Link>
 
             {/* Order History - only for logged in users */}
             {user && (
@@ -171,21 +154,8 @@ const Header: React.FC = () => {
             )}
           </div>
 
-          {/* Mobile: Cart + Menu */}
+          {/* Mobile: Menu */}
           <div className="flex sm:hidden items-center gap-2">
-            {/* Cart Icon */}
-            <Link 
-              to="/checkout" 
-              className="relative p-2 rounded-lg border-2 border-gold/50 bg-card hover:bg-gold/20 transition-colors"
-              title="បង់ប្រាក់"
-            >
-              <ShoppingCart className="w-5 h-5 text-gold" />
-              {cartItemCount > 0 && (
-                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-destructive text-destructive-foreground text-xs font-bold rounded-full flex items-center justify-center">
-                  {cartItemCount > 9 ? '9+' : cartItemCount}
-                </span>
-              )}
-            </Link>
 
             {/* Mobile Menu Dropdown */}
             <DropdownMenu>

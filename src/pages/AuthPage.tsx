@@ -11,6 +11,7 @@ import { useSite } from '@/contexts/SiteContext';
 import { toast } from '@/hooks/use-toast';
 import KhmerFrame from '@/components/KhmerFrame';
 import Header from '@/components/Header';
+import HeaderSpacer from '@/components/HeaderSpacer';
 import { z } from 'zod';
 
 const emailSchema = z.string().email('Please enter a valid email');
@@ -113,8 +114,9 @@ const AuthPage: React.FC = () => {
       </Helmet>
       
       <Header />
+      <HeaderSpacer />
 
-      <div className="min-h-screen flex items-center justify-center p-4 pt-20 bg-gradient-to-b from-background to-secondary/20">
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-secondary/20">
         <div className="w-full max-w-md">
           <KhmerFrame className="p-0">
             <Card className="border-0 shadow-none bg-transparent">
