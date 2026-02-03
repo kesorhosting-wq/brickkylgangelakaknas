@@ -40,6 +40,15 @@ const KHQRPaymentCard = ({
   const navigate = useNavigate();
   const { playCompletedSound } = useNotificationSound();
 
+  const normalizeStatus = useCallback((s: unknown) => (typeof s === "string" ? s.toLowerCase() : ""), []);
+  const isSuccessStatus = useCallback(
+    (s: unknown) => {
+      const status = normalizeStatus(s);
+      return status === "paid" || status === "processing" || status === "completed";
+    },
+    [normalizeStatus]
+  );
+
   const [timeLeft, setTimeLeft] = useState(expiresIn);
   const [copied, setCopied] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -60,6 +69,75 @@ const KHQRPaymentCard = ({
     return () => clearInterval(timer);
   }, []);
 
+  // Immediate redirect on payment detection - no waiting for completion
+  const handlePaymentSuccess = useCallback(() => {
+    if (paymentStatus === "paid") return; // Prevent duplicate calls
+
+    setPaymentStatus("paid");
+    playCompletedSound();
+    toast({ title: "✅ ការបង់ប្រាក់បានទទួល!", description: "កំពុងបញ្ជូនទៅទំព័រវិក្កយបត្រ..." });
+
+    // Quick redirect after showing success state
+    setTimeout(() => {
+      if (onComplete) {
+        onComplete();
+        return;
+      }
+      navigate(`/invoice/${orderId}`);
+    }, 1000);
+  }, [orderId, navigate, onComplete, playCompletedSound, toast, paymentStatus]);
+
+  const checkPaymentStatus = useCallback(
+    async (silent = false) => {
+      if (!silent) setChecking(true);
+
+      try {
+        // Prefer checking through the payment backend (works even if direct table reads are blocked)
+        const { data: statusData, error: statusError } = await supabase.functions.invoke("ikhode-payment", {
+          body: { action: "check-status", orderId },
+        });
+
+        if (statusError) throw statusError;
+
+        const status = normalizeStatus(statusData?.status);
+        console.log(`[Poll] Backend status for ${orderId}:`, status);
+
+        if (isSuccessStatus(status)) {
+          console.log(`[Poll] Payment success detected! Status: ${status}`);
+          handlePaymentSuccess();
+          return;
+        }
+
+        // Fallback: direct DB check (in case backend check is misconfigured)
+        const { data: order, error: dbError } = await supabase
+          .from("topup_orders")
+          .select("status")
+          .eq("id", orderId)
+          .single();
+
+        if (dbError) throw dbError;
+
+        if (isSuccessStatus(order?.status)) {
+          console.log(`[Poll] Payment success detected (DB)! Status: ${String(order?.status)}`);
+          handlePaymentSuccess();
+        } else if (!silent) {
+          toast({
+            title: "ការបង់ប្រាក់មិនទាន់ទទួល",
+            description: "សូមបញ្ចប់ការទូទាត់នៅក្នុងកម្មវិធីធនាគាររបស់អ្នក",
+          });
+        }
+      } catch (error: any) {
+        console.error("Payment check error:", error);
+        if (!silent) {
+          toast({ title: "កំហុសពិនិត្យការទូទាត់", description: error.message, variant: "destructive" });
+        }
+      } finally {
+        if (!silent) setChecking(false);
+      }
+    },
+    [orderId, toast, handlePaymentSuccess, isSuccessStatus, normalizeStatus]
+  );
+
   // WebSocket for real-time payment updates
   useEffect(() => {
     if (!wsUrl || paymentStatus !== "pending") return;
@@ -67,7 +145,7 @@ const KHQRPaymentCard = ({
     try {
       const ws = new WebSocket(wsUrl);
       
-      ws.onmessage = (event) => {
+       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           // Handle both payment_success (from your backend) and payment_confirmed
@@ -90,7 +168,7 @@ const KHQRPaymentCard = ({
     } catch (error) {
       console.error('WebSocket connection error:', error);
     }
-  }, [wsUrl, paymentStatus, orderId]);
+   }, [wsUrl, paymentStatus, orderId, handlePaymentSuccess]);
 
   // Supabase Realtime subscription for instant payment detection
   useEffect(() => {
@@ -109,12 +187,11 @@ const KHQRPaymentCard = ({
           filter: `id=eq.${orderId}`,
         },
         (payload) => {
-          const newStatus = (payload.new as any)?.status;
+          const newStatusRaw = (payload.new as any)?.status;
+          const newStatus = normalizeStatus(newStatusRaw);
           console.log(`[Realtime] Order ${orderId} status changed to: ${newStatus}`);
 
-          // Detect any success status - paid, processing, or completed
-          const successStatuses = ['paid', 'processing', 'completed'];
-          if (successStatuses.includes(newStatus)) {
+          if (isSuccessStatus(newStatus)) {
             console.log(`[Realtime] Payment success detected! Status: ${newStatus}`);
             handlePaymentSuccess();
           }
@@ -128,7 +205,7 @@ const KHQRPaymentCard = ({
       console.log(`[Payment] Cleaning up Realtime subscription for order: ${orderId}`);
       supabase.removeChannel(channel);
     };
-  }, [paymentStatus, orderId]);
+  }, [paymentStatus, orderId, isSuccessStatus, normalizeStatus, handlePaymentSuccess]);
 
   // Polling for payment status (fallback)
   useEffect(() => {
@@ -139,53 +216,7 @@ const KHQRPaymentCard = ({
     }, 1500); // Fast polling - every 1.5 seconds
 
     return () => clearInterval(pollInterval);
-  }, [paymentStatus, orderId]);
-
-  // Immediate redirect on payment detection - no waiting for completion
-  const handlePaymentSuccess = useCallback(() => {
-    if (paymentStatus === "paid") return; // Prevent duplicate calls
-    
-    setPaymentStatus("paid");
-    playCompletedSound();
-    toast({ title: "✅ ការបង់ប្រាក់បានទទួល!", description: "កំពុងបញ្ជូនទៅទំព័រវិក្កយបត្រ..." });
-    
-    // Quick redirect after showing success state
-    setTimeout(() => {
-      onComplete?.();
-      navigate(`/invoice/${orderId}`);
-    }, 1000);
-  }, [orderId, navigate, onComplete, playCompletedSound, toast, paymentStatus]);
-
-  const checkPaymentStatus = useCallback(async (silent = false) => {
-    if (!silent) setChecking(true);
-
-    try {
-      const { data: order } = await supabase
-        .from("topup_orders")
-        .select("status")
-        .eq("id", orderId)
-        .single();
-
-      // Check for any success status
-      const successStatuses = ['paid', 'processing', 'completed'];
-      if (order?.status && successStatuses.includes(order.status)) {
-        console.log(`[Poll] Payment success detected! Status: ${order.status}`);
-        handlePaymentSuccess();
-      } else if (!silent) {
-        toast({
-          title: "ការបង់ប្រាក់មិនទាន់ទទួល",
-          description: "សូមបញ្ចប់ការទូទាត់នៅក្នុងកម្មវិធីធនាគាររបស់អ្នក"
-        });
-      }
-    } catch (error: any) {
-      console.error("Payment check error:", error);
-      if (!silent) {
-        toast({ title: "កំហុសពិនិត្យការទូទាត់", description: error.message, variant: "destructive" });
-      }
-    } finally {
-      if (!silent) setChecking(false);
-    }
-  }, [orderId, toast]);
+  }, [paymentStatus, orderId, checkPaymentStatus]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

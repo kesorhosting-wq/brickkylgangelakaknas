@@ -178,9 +178,11 @@ serve(async (req) => {
           );
         }
 
+        const status = String(order?.status ?? "pending").toLowerCase();
+
         return new Response(
           JSON.stringify({
-            status: order?.status === "paid" ? "paid" : "pending",
+            status,
             orderId,
           }),
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
