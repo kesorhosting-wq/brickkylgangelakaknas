@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, Save, X, CheckCircle, XCircle, RefreshCw, Shield, Download } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, CheckCircle, XCircle, RefreshCw, Shield, Download, Link2, Gamepad2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -42,6 +42,8 @@ const GameVerificationConfigsTab: React.FC = () => {
   const [configs, setConfigs] = useState<VerificationConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [syncingGames, setSyncingGames] = useState(false);
+  const [games, setGames] = useState<{ id: string; name: string; g2bulk_category_id: string | null }[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editData, setEditData] = useState<Partial<VerificationConfig>>({});
   const [showAddForm, setShowAddForm] = useState(false);
@@ -53,6 +55,17 @@ const GameVerificationConfigsTab: React.FC = () => {
     default_zone: '',
     is_active: true
   });
+
+  const fetchGames = async () => {
+    const { data, error } = await supabase
+      .from('games')
+      .select('id, name, g2bulk_category_id')
+      .order('name', { ascending: true });
+    
+    if (!error) {
+      setGames(data || []);
+    }
+  };
 
   const fetchConfigs = async () => {
     setLoading(true);
@@ -71,6 +84,7 @@ const GameVerificationConfigsTab: React.FC = () => {
 
   useEffect(() => {
     fetchConfigs();
+    fetchGames();
   }, []);
 
   const syncFromG2Bulk = async () => {
@@ -140,6 +154,63 @@ const GameVerificationConfigsTab: React.FC = () => {
       });
     } finally {
       setSyncing(false);
+    }
+  };
+
+  // Sync verification configs from actual games in database
+  const syncWithGames = async () => {
+    setSyncingGames(true);
+    try {
+      // Get existing configs
+      const { data: existingConfigs } = await supabase
+        .from('game_verification_configs')
+        .select('game_name');
+      
+      const existingNames = new Set((existingConfigs || []).map(c => c.game_name.toLowerCase()));
+
+      // Get games that don't have configs
+      const gamesToSync = games.filter(g => !existingNames.has(g.name.toLowerCase()) && g.g2bulk_category_id);
+
+      if (gamesToSync.length === 0) {
+        toast({ title: 'Already synced', description: 'All games already have verification configs.' });
+        setSyncingGames(false);
+        return;
+      }
+
+      // Create configs for each game
+      const newConfigs = gamesToSync.map(game => ({
+        game_name: game.name,
+        api_code: game.g2bulk_category_id || '',
+        api_provider: 'g2bulk',
+        requires_zone: GAMES_REQUIRING_ZONE.some(z => 
+          (game.g2bulk_category_id || '').includes(z) || z.includes(game.g2bulk_category_id || '')
+        ),
+        is_active: true
+      }));
+
+      const { error: insertError } = await supabase
+        .from('game_verification_configs')
+        .insert(newConfigs);
+
+      if (insertError) {
+        throw new Error(insertError.message);
+      }
+
+      toast({ 
+        title: 'Sync complete!', 
+        description: `Added ${newConfigs.length} verification configs from your games.` 
+      });
+      
+      fetchConfigs();
+    } catch (error) {
+      console.error('Sync with games error:', error);
+      toast({ 
+        title: 'Sync failed', 
+        description: error instanceof Error ? error.message : 'Unknown error', 
+        variant: 'destructive' 
+      });
+    } finally {
+      setSyncingGames(false);
     }
   };
 
@@ -298,6 +369,20 @@ const GameVerificationConfigsTab: React.FC = () => {
                   <Download className="w-4 h-4 mr-1" />
                 )}
                 {syncing ? 'Syncing...' : 'Sync from G2Bulk'}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={syncWithGames}
+                disabled={syncingGames}
+                className="border-green-500/50 text-green-500 hover:bg-green-500/10"
+              >
+                {syncingGames ? (
+                  <RefreshCw className="w-4 h-4 mr-1 animate-spin" />
+                ) : (
+                  <Gamepad2 className="w-4 h-4 mr-1" />
+                )}
+                {syncingGames ? 'Syncing...' : 'Sync with Games'}
               </Button>
               <Button 
                 size="sm" 
@@ -572,9 +657,12 @@ const GameVerificationConfigsTab: React.FC = () => {
       <Card className="border-blue-500/30 bg-blue-500/5">
         <CardContent className="p-4">
           <p className="text-sm text-muted-foreground">
-            <strong>Sync from G2Bulk:</strong> Click the sync button to import all game codes from G2Bulk API. 
+            <strong>Sync from G2Bulk:</strong> Import all game codes from G2Bulk API. 
             This will add any new games that don't already exist in your configs. Games like Mobile Legends, Free Fire, and HOK 
             are automatically marked as requiring Zone/Server ID.
+            <br /><br />
+            <strong>Sync with Games:</strong> Create verification configs for games you've already imported. 
+            Uses the g2bulk_category_id from each game as the API code.
           </p>
         </CardContent>
       </Card>

@@ -249,17 +249,68 @@ async function fulfillRechargeOrder(
       });
       
       const catalogueData = await catalogueResponse.json();
-      if (catalogueData.catalogues && Array.isArray(catalogueData.catalogues)) {
+      if (catalogueData.success && catalogueData.catalogues && Array.isArray(catalogueData.catalogues)) {
         const matchedCatalogue = catalogueData.catalogues.find(
           (c: { id: number; name: string }) => c.id.toString() === catalogueId
         );
         if (matchedCatalogue) {
           catalogueName = matchedCatalogue.name;
           console.log(`[Fulfill-Recharge] Found catalogue from API: ${catalogueName} (id: ${catalogueId})`);
+
+          // Also sync this to g2bulk_products for future use
+          try {
+            await supabase
+              .from('g2bulk_products')
+              .upsert({
+                g2bulk_type_id: catalogueId,
+                g2bulk_product_id: order.g2bulk_product_id,
+                game_name: order.game_name || gameCode,
+                product_name: catalogueName,
+                denomination: catalogueName,
+                price: parseFloat(matchedCatalogue.amount) || 0,
+                currency: 'USD',
+                fields: { game_code: gameCode },
+                product_type: 'recharge',
+              }, { onConflict: 'g2bulk_product_id' });
+            console.log(`[Fulfill-Recharge] Synced product to g2bulk_products table`);
+          } catch (syncErr) {
+            console.log(`[Fulfill-Recharge] Could not sync product (non-critical): ${syncErr}`);
+          }
         }
       }
     } catch (catalogueError) {
       console.error(`[Fulfill-Recharge] Error fetching catalogue: ${catalogueError}`);
+    }
+  }
+
+  // PRIORITY 5: If still no catalogueName, try using g2bulk_type_id from packages directly
+  if (!catalogueName && catalogueId) {
+    // Use catalogueId as the catalogue_name if we have it (some G2Bulk games accept ID as name)
+    console.log(`[Fulfill-Recharge] Fallback: Using catalogueId (${catalogueId}) as catalogue reference`);
+    
+    // Try to get by catalogue ID directly from the API endpoint
+    try {
+      const catalogueResponse = await fetch(`${G2BULK_API_URL}/games/${gameCode}/catalogue`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'X-API-Key': apiKey,
+        },
+      });
+      
+      const catalogueData = await catalogueResponse.json();
+      if (catalogueData.success && catalogueData.catalogues) {
+        // Try to find by id
+        for (const cat of catalogueData.catalogues) {
+          if (String(cat.id) === catalogueId) {
+            catalogueName = cat.name;
+            console.log(`[Fulfill-Recharge] Found in second attempt: ${catalogueName}`);
+            break;
+          }
+        }
+      }
+    } catch (e) {
+      console.log(`[Fulfill-Recharge] Second catalogue fetch failed: ${e}`);
     }
   }
 
