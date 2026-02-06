@@ -95,14 +95,17 @@ const GameVerificationConfigsTab: React.FC = () => {
         body: { action: 'get_games' }
       });
 
-      if (error || !data?.success) {
-        throw new Error(error?.message || data?.error || 'Failed to fetch games from G2Bulk');
+      if (error) {
+        throw new Error(error?.message || 'Failed to fetch games from G2Bulk');
       }
 
-      const games: G2BulkGame[] = data.data?.games || [];
+      // The response format is { data: { games: [...] }, success: true }
+      // OR directly { games: [...], success: true } depending on endpoint
+      const gamesData = data?.data?.games || data?.games || [];
+      const games: G2BulkGame[] = gamesData;
       
       if (games.length === 0) {
-        toast({ title: 'No games found', description: 'G2Bulk returned no games', variant: 'destructive' });
+        toast({ title: 'No games found', description: 'G2Bulk returned no games. Check API configuration.', variant: 'destructive' });
         return;
       }
 
