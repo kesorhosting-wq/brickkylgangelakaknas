@@ -13,6 +13,7 @@ import { useSite } from "@/contexts/SiteContext";
 import { useCart } from "@/contexts/CartContext";
 import { useFavicon } from "@/hooks/useFavicon";
 import { useGameIdCache } from "@/hooks/useGameIdCache";
+import { useGameVerificationConfig } from "@/hooks/useGameVerificationConfig";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,6 +39,9 @@ const TopupPage: React.FC = () => {
 
   // Auto-load cached game IDs (24h cache)
   const { cachedUserId, cachedServerId, saveToCache, hasCachedData } = useGameIdCache(game?.id);
+
+  // Fetch verification config from database to check if zone is required
+  const { requiresZone: dbRequiresZone, isLoading: verifyConfigLoading } = useGameVerificationConfig(game?.name);
 
   const [userId, setUserId] = useState("");
   const [serverId, setServerId] = useState("");
@@ -699,18 +703,36 @@ const TopupPage: React.FC = () => {
   };
 
   const gameIdConfig = game ? getGameIdConfig(game.name) : null;
-  const hasMultipleFields = gameIdConfig && gameIdConfig.fields.length > 1;
+  
+  // Check if zone is required - prioritize database config, fallback to hardcoded
+  const hardcodedRequiresZone = gameIdConfig && gameIdConfig.fields.length > 1;
+  const requiresZone = dbRequiresZone || hardcodedRequiresZone;
+  
+  // Build dynamic fields based on DB config (no useMemo needed here since it's after early returns)
+  let dynamicFields = gameIdConfig;
+  if (gameIdConfig && dbRequiresZone && gameIdConfig.fields.length === 1) {
+    dynamicFields = {
+      ...gameIdConfig,
+      fields: [
+        gameIdConfig.fields[0],
+        { key: "serverId", label: "Server ID", placeholder: "Server ID", width: "w-24 sm:w-32" }
+      ],
+      validation: "សូមបញ្ចូល ID និង Server ID",
+    };
+  }
+  
+  const hasMultipleFields = dynamicFields && dynamicFields.fields.length > 1;
 
   // Handle ID verification using real API
   const handleVerify = async () => {
     if (!userId.trim()) {
-      toast({ title: gameIdConfig?.validation || "សូមបញ្ចូល Game ID", variant: "destructive" });
+      toast({ title: dynamicFields?.validation || "សូមបញ្ចូល Game ID", variant: "destructive" });
       return;
     }
 
     // For games with server ID, check if it's required
-    if (hasMultipleFields && !serverId.trim()) {
-      toast({ title: gameIdConfig?.validation || "សូមបញ្ចូល Server ID", variant: "destructive" });
+    if (requiresZone && !serverId.trim()) {
+      toast({ title: "សូមបញ្ចូល Server ID", variant: "destructive" });
       return;
     }
 
@@ -894,11 +916,11 @@ const TopupPage: React.FC = () => {
     }
   };
 
-  // Render dynamic ID input fields based on game
+  // Render dynamic ID input fields based on game (uses dynamicFields which includes DB zone requirements)
   const renderIdInputs = () => {
-    if (!gameIdConfig) return null;
+    if (!dynamicFields) return null;
 
-    const fields = gameIdConfig.fields;
+    const fields = dynamicFields.fields;
 
     return (
       <div className="space-y-2">
@@ -923,12 +945,12 @@ const TopupPage: React.FC = () => {
             </div>
           ))}
         </div>
-        {gameIdConfig.example && (
+        {dynamicFields.example && (
           <p
             className="text-xs text-muted-foreground pl-1"
             style={{ color: settings.frameColor ? `${settings.frameColor}99` : "hsl(30 30% 50%)" }}
           >
-            {gameIdConfig.example}
+            {dynamicFields.example}
           </p>
         )}
       </div>

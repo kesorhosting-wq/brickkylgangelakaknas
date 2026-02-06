@@ -127,10 +127,8 @@ const CheckoutPage = () => {
       title: "✓ បង់ប្រាក់បានជោគជ័យ!",
       description: "ការបញ្ជាទិញរបស់អ្នកកំពុងដំណើរការ",
     });
-    // Navigate to invoice page
-    if (orderId) {
-      navigate(`/invoice/${orderId}`);
-    }
+    // Navigate to homepage after successful payment
+    navigate("/");
   };
 
   const handleCancelPayment = () => {
