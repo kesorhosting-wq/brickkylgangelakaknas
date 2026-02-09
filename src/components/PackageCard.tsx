@@ -195,6 +195,14 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect, prio
           >
             {pkg.name}
           </span>
+          {pkg.quantity != null && pkg.quantity > 0 && (
+            <span 
+              className="text-[9px] sm:text-[10px] opacity-70"
+              style={{ color: settings.packageTextColor || '#ffffff' }}
+            >
+              ×{pkg.quantity} available
+            </span>
+          )}
         </div>
         
         {/* Right section with chevron arrow shape */}
