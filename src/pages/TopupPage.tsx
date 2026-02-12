@@ -13,7 +13,8 @@ import { useSite } from "@/contexts/SiteContext";
 import { useCart } from "@/contexts/CartContext";
 import { useFavicon } from "@/hooks/useFavicon";
 import { useGameIdCache } from "@/hooks/useGameIdCache";
-import { useGameVerificationConfig } from "@/hooks/useGameVerificationConfig";
+import { useGameVerificationConfig, ZoneOption } from "@/hooks/useGameVerificationConfig";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,7 +42,7 @@ const TopupPage: React.FC = () => {
   const { cachedUserId, cachedServerId, saveToCache, hasCachedData } = useGameIdCache(game?.id);
 
   // Fetch verification config from database to check if zone is required
-  const { requiresZone: dbRequiresZone, isLoading: verifyConfigLoading } = useGameVerificationConfig(game?.name);
+  const { requiresZone: dbRequiresZone, isLoading: verifyConfigLoading, zoneOptions } = useGameVerificationConfig(game?.name);
 
   const [userId, setUserId] = useState("");
   const [serverId, setServerId] = useState("");
@@ -933,15 +934,35 @@ const TopupPage: React.FC = () => {
               >
                 {field.label}
               </label>
-              <Input
-                placeholder={field.placeholder}
-                value={field.key === "userId" ? userId : serverId}
-                onChange={(e) =>
-                  field.key === "userId" ? handleUserIdChange(e.target.value) : handleServerIdChange(e.target.value)
-                }
-                className="bg-white/80 border-0 rounded-full h-10 sm:h-12 px-4 sm:px-5 text-sm sm:text-base text-foreground placeholder:text-muted-foreground"
-                disabled={isVerifying}
-              />
+              {/* Render dropdown for server ID when zone_options are available */}
+              {field.key === "serverId" && zoneOptions && zoneOptions.length > 0 ? (
+                <Select
+                  value={serverId}
+                  onValueChange={(value) => handleServerIdChange(value)}
+                  disabled={isVerifying}
+                >
+                  <SelectTrigger className="bg-white/80 border-0 rounded-full h-10 sm:h-12 px-4 sm:px-5 text-sm sm:text-base text-foreground">
+                    <SelectValue placeholder={field.placeholder} />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-50">
+                    {zoneOptions.map((opt) => (
+                      <SelectItem key={opt.value} value={opt.value}>
+                        {opt.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <Input
+                  placeholder={field.placeholder}
+                  value={field.key === "userId" ? userId : serverId}
+                  onChange={(e) =>
+                    field.key === "userId" ? handleUserIdChange(e.target.value) : handleServerIdChange(e.target.value)
+                  }
+                  className="bg-white/80 border-0 rounded-full h-10 sm:h-12 px-4 sm:px-5 text-sm sm:text-base text-foreground placeholder:text-muted-foreground"
+                  disabled={isVerifying}
+                />
+              )}
             </div>
           ))}
         </div>

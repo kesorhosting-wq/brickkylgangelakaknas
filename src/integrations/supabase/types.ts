@@ -106,6 +106,7 @@ export type Database = {
           is_active: boolean
           requires_zone: boolean
           updated_at: string
+          zone_options: Json | null
         }
         Insert: {
           api_code: string
@@ -117,6 +118,7 @@ export type Database = {
           is_active?: boolean
           requires_zone?: boolean
           updated_at?: string
+          zone_options?: Json | null
         }
         Update: {
           api_code?: string
@@ -128,6 +130,7 @@ export type Database = {
           is_active?: boolean
           requires_zone?: boolean
           updated_at?: string
+          zone_options?: Json | null
         }
         Relationships: []
       }
