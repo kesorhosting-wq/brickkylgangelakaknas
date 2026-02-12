@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Trash2, Edit2, Save, X, CheckCircle, XCircle, RefreshCw, Shield, Download, Link2, Gamepad2 } from 'lucide-react';
+import { Plus, Trash2, Edit2, Save, X, CheckCircle, XCircle, RefreshCw, Shield, Download, Link2, Gamepad2, Server } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -10,6 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 
+interface ZoneOption {
+  value: string;
+  label: string;
+}
+
 interface VerificationConfig {
   id: string;
   game_name: string;
@@ -17,6 +22,7 @@ interface VerificationConfig {
   api_provider: string;
   requires_zone: boolean;
   default_zone: string | null;
+  zone_options: ZoneOption[] | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -77,7 +83,11 @@ const GameVerificationConfigsTab: React.FC = () => {
     if (error) {
       toast({ title: 'Failed to load configs', description: error.message, variant: 'destructive' });
     } else {
-      setConfigs(data || []);
+      const mapped = (data || []).map(d => ({
+        ...d,
+        zone_options: Array.isArray(d.zone_options) ? d.zone_options as unknown as ZoneOption[] : null,
+      }));
+      setConfigs(mapped);
     }
     setLoading(false);
   };
@@ -328,6 +338,47 @@ const GameVerificationConfigsTab: React.FC = () => {
     } else {
       toast({ title: 'All configs deleted!' });
       fetchConfigs();
+    }
+  };
+
+  const [fetchingServersFor, setFetchingServersFor] = useState<string | null>(null);
+
+  const handleFetchServers = async (config: VerificationConfig) => {
+    setFetchingServersFor(config.id);
+    try {
+      const { data, error } = await supabase.functions.invoke('g2bulk-api', {
+        body: { action: 'get_game_servers', game_code: config.api_code }
+      });
+
+      if (error) throw new Error(error.message);
+
+      const servers = data?.data?.servers;
+      if (!servers || Object.keys(servers).length === 0) {
+        toast({ title: 'No servers found', description: `${config.game_name} has no predefined servers.` });
+        return;
+      }
+
+      // Convert servers object to zone_options array
+      const zoneOptions: ZoneOption[] = Object.entries(servers).map(([key, value]) => ({
+        value: String(key),
+        label: String(value),
+      }));
+
+      // Save to database
+      const { error: updateError } = await supabase
+        .from('game_verification_configs')
+        .update({ zone_options: zoneOptions as unknown as any })
+        .eq('id', config.id);
+
+      if (updateError) throw new Error(updateError.message);
+
+      toast({ title: 'Servers fetched!', description: `${zoneOptions.length} server options saved for ${config.game_name}` });
+      fetchConfigs();
+    } catch (error) {
+      console.error('Fetch servers error:', error);
+      toast({ title: 'Failed to fetch servers', description: error instanceof Error ? error.message : 'Unknown error', variant: 'destructive' });
+    } finally {
+      setFetchingServersFor(null);
     }
   };
 
@@ -602,13 +653,35 @@ const GameVerificationConfigsTab: React.FC = () => {
                           </Badge>
                         </td>
                         <td className="p-3">
-                          {config.requires_zone ? (
-                            <Badge variant="secondary" className="text-xs">
-                              Required {config.default_zone && `(${config.default_zone})`}
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
+                          <div className="flex items-center gap-1 flex-wrap">
+                            {config.requires_zone ? (
+                              <Badge variant="secondary" className="text-xs">
+                                Required {config.default_zone && `(${config.default_zone})`}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">-</span>
+                            )}
+                            {config.zone_options && config.zone_options.length > 0 ? (
+                              <Badge variant="outline" className="text-xs text-blue-500 border-blue-500/50">
+                                {config.zone_options.length} servers
+                              </Badge>
+                            ) : config.requires_zone ? (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 text-xs px-2"
+                                disabled={fetchingServersFor === config.id}
+                                onClick={() => handleFetchServers(config)}
+                              >
+                                {fetchingServersFor === config.id ? (
+                                  <RefreshCw className="w-3 h-3 animate-spin mr-1" />
+                                ) : (
+                                  <Server className="w-3 h-3 mr-1" />
+                                )}
+                                Fetch
+                              </Button>
+                            ) : null}
+                          </div>
                         </td>
                         <td className="p-3 text-center">
                           <button onClick={() => handleToggleActive(config.id, config.is_active)}>
@@ -621,6 +694,20 @@ const GameVerificationConfigsTab: React.FC = () => {
                         </td>
                         <td className="p-3">
                           <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-7 w-7"
+                              title="Fetch servers from G2Bulk"
+                              disabled={fetchingServersFor === config.id}
+                              onClick={() => handleFetchServers(config)}
+                            >
+                              {fetchingServersFor === config.id ? (
+                                <RefreshCw className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Server className="w-4 h-4" />
+                              )}
+                            </Button>
                             <Button 
                               variant="ghost" 
                               size="icon" 
