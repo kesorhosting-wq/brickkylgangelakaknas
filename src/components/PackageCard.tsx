@@ -104,7 +104,8 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect, prio
       {/* Label badge overlay - positioned at top */}
       {pkg.label && (
         <div 
-          className="flex items-center gap-1 px-2 py-[2px] mb-1"
+          className="inline-flex items-center gap-1 px-2.5 py-[3px] mb-1 rounded-sm"
+          style={{ backgroundColor: pkg.labelBgColor || '#dc2626' }}
         >
           {pkg.labelIcon && (
             <img 
@@ -116,7 +117,7 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect, prio
           )}
           <span 
             className="text-[9px] sm:text-[11px] font-extrabold uppercase tracking-wider truncate"
-            style={{ color: pkg.labelBgColor || '#dc2626' }}
+            style={{ color: pkg.labelTextColor || '#ffffff' }}
           >
             {pkg.label}
           </span>
