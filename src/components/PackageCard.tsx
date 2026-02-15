@@ -101,29 +101,6 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect, prio
         selected && "ring-2 ring-gold ring-offset-2 ring-offset-background"
       )}
     >
-      {/* Label badge overlay - positioned at top */}
-      {pkg.label && (
-        <div 
-          className="inline-flex items-center gap-1 px-2.5 py-[3px] mb-1 rounded-sm"
-          style={{ backgroundColor: pkg.labelBgColor || '#dc2626' }}
-        >
-          {pkg.labelIcon && (
-            <img 
-              src={pkg.labelIcon} 
-              alt="" 
-              className="w-3.5 h-3.5 object-contain"
-              loading="lazy"
-            />
-          )}
-          <span 
-            className="text-[9px] sm:text-[11px] font-extrabold uppercase tracking-wider truncate"
-            style={{ color: pkg.labelTextColor || '#ffffff' }}
-          >
-            {pkg.label}
-          </span>
-        </div>
-      )}
-
       {/* Banner/Ribbon style container */}
       <div 
         className={cn(
@@ -235,6 +212,24 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect, prio
           </div>
         )}
         
+        {/* Label badge - top left inside card */}
+        {pkg.label && (
+          <div 
+            className="absolute top-0 left-0 z-20 inline-flex items-center gap-1 px-2 py-[2px] rounded-br-md"
+            style={{ backgroundColor: pkg.labelBgColor || '#dc2626' }}
+          >
+            {pkg.labelIcon && (
+              <img src={pkg.labelIcon} alt="" className="w-3 h-3 object-contain" loading="lazy" />
+            )}
+            <span 
+              className="text-[8px] sm:text-[10px] font-extrabold uppercase tracking-wider truncate"
+              style={{ color: pkg.labelTextColor || '#ffffff' }}
+            >
+              {pkg.label}
+            </span>
+          </div>
+        )}
+
         {/* Hover glow effect */}
         <div className="absolute inset-0 bg-gradient-to-r from-gold/0 via-gold/10 to-gold/0 opacity-0 hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
       </div>
