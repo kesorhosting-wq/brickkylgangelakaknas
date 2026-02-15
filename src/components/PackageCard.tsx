@@ -104,21 +104,22 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect, prio
       {/* Label badge overlay - positioned at top */}
       {pkg.label && (
         <div 
-          className="absolute top-0 left-0 right-0 z-20 flex items-center justify-center gap-1 px-2 py-0.5 rounded-t-lg"
+          className="absolute -top-0.5 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center gap-1 px-3 py-[2px] rounded-full shadow-md"
           style={{
             backgroundColor: pkg.labelBgColor || '#dc2626',
+            boxShadow: `0 2px 8px ${pkg.labelBgColor || '#dc2626'}66`,
           }}
         >
           {pkg.labelIcon && (
             <img 
               src={pkg.labelIcon} 
               alt="" 
-              className="w-4 h-4 object-contain"
+              className="w-3.5 h-3.5 object-contain drop-shadow-sm"
               loading="lazy"
             />
           )}
           <span 
-            className="text-[10px] sm:text-xs font-bold truncate"
+            className="text-[9px] sm:text-[11px] font-extrabold uppercase tracking-wider truncate drop-shadow-sm"
             style={{ color: pkg.labelTextColor || '#ffffff' }}
           >
             {pkg.label}
@@ -130,8 +131,7 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect, prio
       <div 
         className={cn(
           "relative flex items-center rounded-lg overflow-hidden",
-          "shadow-md hover:shadow-lg transition-shadow",
-          pkg.label && "rounded-t-none"
+          "shadow-md hover:shadow-lg transition-shadow"
         )}
         style={{
           height: `${Math.min(settings.packageHeight || 48, window.innerWidth < 640 ? 40 : settings.packageHeight || 48)}px`,
@@ -143,7 +143,6 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect, prio
           backgroundSize: 'cover',
           backgroundPosition: 'center',
           border: settings.packageBorderWidth ? `${settings.packageBorderWidth}px solid ${settings.packageBorderColor || '#D4A84B'}` : 'none',
-          borderTop: pkg.label ? 'none' : undefined,
         }}
       >
         {/* Left section with icon */}
