@@ -54,7 +54,6 @@ import G2BulkLinkStats from "@/components/admin/G2BulkLinkStats";
 import G2BulkFullImport from "@/components/admin/G2BulkFullImport";
 import G2BulkDebugLogs from "@/components/admin/G2BulkDebugLogs";
 import PackageStockBadge from "@/components/admin/PackageStockBadge";
-import AIGameImageGenerator, { AIBulkImageGenerator } from "@/components/admin/AIGameImageGenerator";
 import DatabaseExportImport from "@/components/admin/DatabaseExportImport";
 import FontSettingsTab from "@/components/admin/FontSettingsTab";
 import { useG2BulkProductStatus } from "@/hooks/useG2BulkProductStatus";
@@ -1612,10 +1611,6 @@ const AdminPage: React.FC = () => {
                 <G2BulkBulkLinker games={games} onLinkComplete={refreshGames} />
               </div>
 
-              {/* AI Image Generator */}
-              <div className="mb-6">
-                <AIBulkImageGenerator games={games} onComplete={refreshGames} />
-              </div>
               <Card className="border-gold/30 mb-6">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -1800,15 +1795,6 @@ const AdminPage: React.FC = () => {
                                   <ChevronDown className="w-4 h-4" />
                                 )}
                               </Button>
-                              <AIGameImageGenerator
-                                gameName={game.name}
-                                gameId={game.id}
-                                currentImage={game.image}
-                                onImageGenerated={(url) => {
-                                  refreshGames();
-                                }}
-                                variant="icon"
-                              />
                               <Button
                                 variant="outline"
                                 size="icon"
