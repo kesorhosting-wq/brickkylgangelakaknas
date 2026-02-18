@@ -89,7 +89,7 @@ const Index: React.FC = () => {
           
           {/* Games Grid */}
           {isLoading ? (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 max-w-6xl mx-auto">
+            <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-6 max-w-6xl mx-auto">
               {[...Array(8)].map((_, i) => (
                 <div key={i} className="aspect-[3/4] rounded-2xl bg-muted animate-pulse" />
               ))}
@@ -113,7 +113,7 @@ const Index: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6 max-w-6xl mx-auto">
+            <div className="grid grid-cols-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-6 max-w-6xl mx-auto">
               {filteredGames.map((game, index) => (
                 <GameCard 
                   key={game.id} 
