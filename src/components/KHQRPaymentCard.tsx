@@ -3,10 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Wallet, Copy, Check, Timer, Smartphone, Shield, RefreshCw,
-  Loader2, CheckCircle2
-} from "lucide-react";
+import { Wallet, Copy, Check, Timer, Smartphone, Shield, RefreshCw, Loader2, CheckCircle2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useNotificationSound } from "@/hooks/useNotificationSound";
@@ -32,7 +29,7 @@ const KHQRPaymentCard = ({
   description,
   onComplete,
   onCancel,
-  expiresIn = 300, // 5 minutes
+  expiresIn = 120, // 5 minutes
   paymentMethod = "Bakong",
   wsUrl,
 }: KHQRPaymentCardProps) => {
@@ -46,7 +43,7 @@ const KHQRPaymentCard = ({
       const status = normalizeStatus(s);
       return status === "paid" || status === "processing" || status === "completed";
     },
-    [normalizeStatus]
+    [normalizeStatus],
   );
 
   const [timeLeft, setTimeLeft] = useState(expiresIn);
@@ -135,7 +132,7 @@ const KHQRPaymentCard = ({
         if (!silent) setChecking(false);
       }
     },
-    [orderId, toast, handlePaymentSuccess, isSuccessStatus, normalizeStatus]
+    [orderId, toast, handlePaymentSuccess, isSuccessStatus, normalizeStatus],
   );
 
   // WebSocket for real-time payment updates
@@ -144,31 +141,33 @@ const KHQRPaymentCard = ({
 
     try {
       const ws = new WebSocket(wsUrl);
-      
-       ws.onmessage = (event) => {
+
+      ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           // Handle both payment_success (from your backend) and payment_confirmed
-          if ((data.type === 'payment_success' || data.type === 'payment_confirmed') && 
-              (data.transactionId === orderId || data.orderId === orderId)) {
+          if (
+            (data.type === "payment_success" || data.type === "payment_confirmed") &&
+            (data.transactionId === orderId || data.orderId === orderId)
+          ) {
             handlePaymentSuccess();
           }
         } catch (e) {
-          console.error('WebSocket message parse error:', e);
+          console.error("WebSocket message parse error:", e);
         }
       };
 
       ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
+        console.error("WebSocket error:", error);
       };
 
       return () => {
         ws.close();
       };
     } catch (error) {
-      console.error('WebSocket connection error:', error);
+      console.error("WebSocket connection error:", error);
     }
-   }, [wsUrl, paymentStatus, orderId, handlePaymentSuccess]);
+  }, [wsUrl, paymentStatus, orderId, handlePaymentSuccess]);
 
   // Supabase Realtime subscription for instant payment detection
   useEffect(() => {
@@ -179,11 +178,11 @@ const KHQRPaymentCard = ({
     const channel = supabase
       .channel(`order-status-${orderId}`)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'topup_orders',
+          event: "UPDATE",
+          schema: "public",
+          table: "topup_orders",
           filter: `id=eq.${orderId}`,
         },
         (payload) => {
@@ -195,7 +194,7 @@ const KHQRPaymentCard = ({
             console.log(`[Realtime] Payment success detected! Status: ${newStatus}`);
             handlePaymentSuccess();
           }
-        }
+        },
       )
       .subscribe((status) => {
         console.log(`[Realtime] Subscription status: ${status}`);
@@ -249,9 +248,12 @@ const KHQRPaymentCard = ({
     <Card className="overflow-hidden border-0 shadow-2xl">
       {/* Header */}
       <div className="relative bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700 p-6 text-white overflow-hidden">
-        <div className="absolute inset-0 opacity-10" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }} />
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+          }}
+        />
 
         <div className="relative">
           <div className="flex items-center justify-between mb-4">
@@ -279,9 +281,7 @@ const KHQRPaymentCard = ({
               </span>
               <span className="text-xl font-medium ml-1">{currency}</span>
             </div>
-            {description && (
-              <p className="text-white/70 text-sm mt-2">{description}</p>
-            )}
+            {description && <p className="text-white/70 text-sm mt-2">{description}</p>}
           </div>
         </div>
       </div>
@@ -294,12 +294,10 @@ const KHQRPaymentCard = ({
           <div className="absolute -bottom-2 -left-2 w-8 h-8 border-b-4 border-l-4 border-blue-600 rounded-bl-lg" />
           <div className="absolute -bottom-2 -right-2 w-8 h-8 border-b-4 border-r-4 border-blue-600 rounded-br-lg" />
 
-          <div className={`p-4 bg-white rounded-2xl shadow-lg transition-all ${isExpired ? "opacity-50 grayscale" : ""}`}>
-            <img
-              src={qrCode}
-              alt="KHQR Payment Code"
-              className="w-64 h-64 object-contain"
-            />
+          <div
+            className={`p-4 bg-white rounded-2xl shadow-lg transition-all ${isExpired ? "opacity-50 grayscale" : ""}`}
+          >
+            <img src={qrCode} alt="KHQR Payment Code" className="w-64 h-64 object-contain" />
           </div>
 
           {isExpired && (
@@ -315,7 +313,9 @@ const KHQRPaymentCard = ({
         {/* Timer */}
         <div className="flex items-center justify-center gap-2 mt-4">
           <Timer className={`w-4 h-4 ${timeLeft < 30 ? "text-destructive animate-pulse" : "text-muted-foreground"}`} />
-          <span className={`font-mono text-lg ${timeLeft < 30 ? "text-destructive font-bold" : "text-muted-foreground"}`}>
+          <span
+            className={`font-mono text-lg ${timeLeft < 30 ? "text-destructive font-bold" : "text-muted-foreground"}`}
+          >
             {formatTime(timeLeft)}
           </span>
           <span className="text-sm text-muted-foreground">នៅសល់</span>
@@ -324,15 +324,25 @@ const KHQRPaymentCard = ({
         {/* Instructions */}
         <div className="mt-6 p-4 bg-muted/50 rounded-xl space-y-3">
           <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">1</div>
-            <p className="text-sm">បើកកម្មវិធី <strong>Bakong</strong> ឬកម្មវិធីធនាគារ</p>
+            <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+              1
+            </div>
+            <p className="text-sm">
+              បើកកម្មវិធី <strong>Bakong</strong> ឬកម្មវិធីធនាគារ
+            </p>
           </div>
           <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">2</div>
-            <p className="text-sm">ចុច <strong>Scan QR</strong> ហើយស្កេនកូដនេះ</p>
+            <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+              2
+            </div>
+            <p className="text-sm">
+              ចុច <strong>Scan QR</strong> ហើយស្កេនកូដនេះ
+            </p>
           </div>
           <div className="flex items-start gap-3">
-            <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">3</div>
+            <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold flex-shrink-0">
+              3
+            </div>
             <p className="text-sm">បញ្ជាក់ការទូទាត់នៅក្នុងកម្មវិធី</p>
           </div>
         </div>
@@ -343,12 +353,7 @@ const KHQRPaymentCard = ({
             <p className="text-xs text-muted-foreground">Order ID</p>
             <p className="font-mono text-sm truncate max-w-[180px]">{orderId.slice(0, 8)}...</p>
           </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => copyToClipboard(orderId, "Order ID")}
-            className="h-8 w-8"
-          >
+          <Button variant="ghost" size="icon" onClick={() => copyToClipboard(orderId, "Order ID")} className="h-8 w-8">
             {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
           </Button>
         </div>
@@ -381,9 +386,7 @@ const KHQRPaymentCard = ({
         </div>
 
         <div className="mt-6 pt-4 border-t border-border">
-          <p className="text-xs text-center text-muted-foreground mb-3">
-            គាំទ្រដោយធនាគារ Bakong ទាំងអស់
-          </p>
+          <p className="text-xs text-center text-muted-foreground mb-3">គាំទ្រដោយធនាគារ Bakong ទាំងអស់</p>
           <div className="flex items-center justify-center gap-4 opacity-60">
             <Smartphone className="w-5 h-5" />
             <span className="text-xs">ស្កេនជាមួយកម្មវិធីធនាគារណាមួយ</span>
