@@ -56,7 +56,7 @@ const Index: React.FC = () => {
         />
         
         {/* Games Section */}
-        <section className="container mx-auto px-3 sm:px-4 py-6 sm:py-12 flex-1">
+        <section className="container mx-auto px-2 sm:px-4 py-4 sm:py-12 flex-1">
           {/* Section Title */}
           <div className="text-center mb-6 sm:mb-10">
             <h2 className="font-khmer text-xl sm:text-3xl md:text-4xl font-bold text-foreground mb-4">

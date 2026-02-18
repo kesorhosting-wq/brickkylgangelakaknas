@@ -67,16 +67,16 @@ const GameCard: React.FC<GameCardProps> = ({ game, cardBgColor, cardBorderColor,
           </div>
           
           {/* Game name and Topup Button */}
-          <div className="p-3 sm:p-4 space-y-2">
-            <h3 className="font-khmer text-sm sm:text-base font-bold text-foreground line-clamp-1 text-center">
+          <div className="p-1.5 sm:p-4 space-y-1 sm:space-y-2">
+            <h3 className="font-khmer text-[10px] sm:text-base font-bold text-foreground line-clamp-1 text-center">
               {game.name}
             </h3>
             <Link to={`/topup/${game.slug}`} className="block">
               <Button 
-                className="w-full gap-2 bg-gradient-to-r from-gold to-gold-dark hover:from-gold-dark hover:to-gold text-background font-semibold transition-all duration-300 shadow-lg hover:shadow-gold/30"
+                className="w-full gap-1 sm:gap-2 bg-gradient-to-r from-gold to-gold-dark hover:from-gold-dark hover:to-gold text-background font-semibold transition-all duration-300 shadow-lg hover:shadow-gold/30 text-[9px] sm:text-sm h-7 sm:h-9"
                 size="sm"
               >
-                <Gamepad2 className="w-4 h-4" />
+                <Gamepad2 className="w-3 h-3 sm:w-4 sm:h-4" />
                 <span className="font-khmer">Topup</span>
               </Button>
             </Link>
