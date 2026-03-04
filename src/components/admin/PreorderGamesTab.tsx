@@ -173,7 +173,7 @@ const PreorderGamesTab: React.FC = () => {
         g2bulk_product_id: newPkg.g2bulkProductId || null,
         g2bulk_type_id: newPkg.g2bulkTypeId || null,
         quantity: newPkg.quantity,
-        scheduled_fulfill_at: newPkg.scheduledFulfillAt || null,
+        scheduled_fulfill_at: newPkg.scheduledFulfillAt ? new Date(newPkg.scheduledFulfillAt).toISOString() : null,
         sort_order: packages.length,
       });
       if (error) throw error;
@@ -205,7 +205,7 @@ const PreorderGamesTab: React.FC = () => {
       g2bulkTypeId: pkg.g2bulk_type_id || '',
       quantity: pkg.quantity,
       scheduledFulfillAt: pkg.scheduled_fulfill_at
-        ? new Date(pkg.scheduled_fulfill_at).toISOString().slice(0, 19)
+        ? (() => { const d = new Date(pkg.scheduled_fulfill_at); const off = d.getTimezoneOffset(); const local = new Date(d.getTime() - off * 60000); return local.toISOString().slice(0, 19); })()
         : '',
     });
   };
@@ -224,7 +224,7 @@ const PreorderGamesTab: React.FC = () => {
         g2bulk_product_id: editPkgData.g2bulkProductId || null,
         g2bulk_type_id: editPkgData.g2bulkTypeId || null,
         quantity: editPkgData.quantity,
-        scheduled_fulfill_at: editPkgData.scheduledFulfillAt || null,
+        scheduled_fulfill_at: editPkgData.scheduledFulfillAt ? new Date(editPkgData.scheduledFulfillAt).toISOString() : null,
       }).eq('id', pkgId);
       if (error) throw error;
       toast({ title: 'Package updated!' });
@@ -681,7 +681,7 @@ const PreorderGamesTab: React.FC = () => {
                                   {pkg.scheduled_fulfill_at && (
                                     <p className="text-xs text-gold flex items-center gap-1 mt-1">
                                       <Clock className="w-3 h-3" />
-                                      Fulfill at: {new Date(pkg.scheduled_fulfill_at).toLocaleString()}
+                                      Fulfill at: {new Date(pkg.scheduled_fulfill_at).toLocaleString('en-US', { timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone })}
                                     </p>
                                   )}
                                   {pg.g2bulk_category_id && (
