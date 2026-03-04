@@ -405,8 +405,8 @@ const AdminPage: React.FC = () => {
         </header>
 
         <div className="container mx-auto px-4 py-6">
-          <Tabs defaultValue="settings" className="flex flex-col md:flex-row gap-6" orientation="vertical">
-            <TabsList className="flex flex-row md:flex-col md:w-48 shrink-0 bg-card border border-border h-auto p-1 overflow-x-auto md:overflow-x-visible">
+          <Tabs defaultValue="settings" className="flex flex-col md:flex-row md:items-start gap-6" orientation="vertical">
+            <TabsList className="flex flex-row md:flex-col md:w-48 shrink-0 bg-card border border-border h-auto p-1 overflow-x-auto md:overflow-x-visible md:sticky md:top-20">
               <TabsTrigger
                 value="settings"
                 className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
