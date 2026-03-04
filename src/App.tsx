@@ -19,7 +19,7 @@ import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
 import EventsPage from "./pages/EventsPage";
 import PreorderPage from "./pages/PreorderPage";
-
+import PreorderTopupPage from "./pages/PreorderTopupPage";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -41,6 +41,7 @@ const App = () => (
                 <Route path="/orders" element={<OrderHistoryPage />} />
                 <Route path="/events" element={<EventsPage />} />
                 <Route path="/preorder" element={<PreorderPage />} />
+                <Route path="/preorder/:gameSlug" element={<PreorderTopupPage />} />
                 <Route path="/auth" element={<AuthPage />} />
                   <Route 
                     path="/admin" 
