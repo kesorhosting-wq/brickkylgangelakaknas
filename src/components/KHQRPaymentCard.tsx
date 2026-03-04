@@ -19,6 +19,7 @@ interface KHQRPaymentCardProps {
   expiresIn?: number;
   paymentMethod?: string;
   wsUrl?: string;
+  isPreorder?: boolean;
 }
 
 const KHQRPaymentCard = ({
@@ -32,6 +33,7 @@ const KHQRPaymentCard = ({
   expiresIn = 120, // 5 minutes
   paymentMethod = "Bakong",
   wsUrl,
+  isPreorder = false,
 }: KHQRPaymentCardProps) => {
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -91,7 +93,7 @@ const KHQRPaymentCard = ({
       try {
         // Prefer checking through the payment backend (works even if direct table reads are blocked)
         const { data: statusData, error: statusError } = await supabase.functions.invoke("ikhode-payment", {
-          body: { action: "check-status", orderId },
+          body: { action: "check-status", orderId, is_preorder: isPreorder },
         });
 
         if (statusError) throw statusError;
@@ -105,9 +107,10 @@ const KHQRPaymentCard = ({
           return;
         }
 
-        // Fallback: direct DB check (in case backend check is misconfigured)
+        // Fallback: direct DB check
+        const tableName = isPreorder ? "preorder_orders" : "topup_orders";
         const { data: order, error: dbError } = await supabase
-          .from("topup_orders")
+          .from(tableName)
           .select("status")
           .eq("id", orderId)
           .single();
@@ -132,7 +135,7 @@ const KHQRPaymentCard = ({
         if (!silent) setChecking(false);
       }
     },
-    [orderId, toast, handlePaymentSuccess, isSuccessStatus, normalizeStatus],
+    [orderId, toast, handlePaymentSuccess, isSuccessStatus, normalizeStatus, isPreorder],
   );
 
   // WebSocket for real-time payment updates
@@ -182,7 +185,7 @@ const KHQRPaymentCard = ({
         {
           event: "UPDATE",
           schema: "public",
-          table: "topup_orders",
+          table: isPreorder ? "preorder_orders" : "topup_orders",
           filter: `id=eq.${orderId}`,
         },
         (payload) => {
@@ -204,7 +207,7 @@ const KHQRPaymentCard = ({
       console.log(`[Payment] Cleaning up Realtime subscription for order: ${orderId}`);
       supabase.removeChannel(channel);
     };
-  }, [paymentStatus, orderId, isSuccessStatus, normalizeStatus, handlePaymentSuccess]);
+  }, [paymentStatus, orderId, isSuccessStatus, normalizeStatus, handlePaymentSuccess, isPreorder]);
 
   // Polling for payment status (fallback)
   useEffect(() => {

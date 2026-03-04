@@ -67,16 +67,32 @@ serve(async (req) => {
       );
     }
 
-    // 3. Find the order
+    // 3. Find the order - check both topup_orders and preorder_orders
     let order = null;
+    let orderTable = "topup_orders";
 
     if (orderIdFromPath && orderIdFromPath !== "ikhode-webhook") {
-      const { data } = await supabase
+      const { data: topupOrder } = await supabase
         .from("topup_orders")
         .select("*")
         .eq("id", orderIdFromPath)
         .maybeSingle();
-      order = data;
+      
+      if (topupOrder) {
+        order = topupOrder;
+        orderTable = "topup_orders";
+      } else {
+        const { data: preorderOrder } = await supabase
+          .from("preorder_orders")
+          .select("*")
+          .eq("id", orderIdFromPath)
+          .maybeSingle();
+        
+        if (preorderOrder) {
+          order = preorderOrder;
+          orderTable = "preorder_orders";
+        }
+      }
     }
 
     if (!order) {
@@ -87,10 +103,10 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[Webhook] Found Order: ${order.id}, Status: ${order.status}`);
+    console.log(`[Webhook] Found Order: ${order.id}, Table: ${orderTable}, Status: ${order.status}`);
 
-    // 4. Already Processed Check - allow "pending" and "paid" status to be processed
-    const processableStatuses = ["pending", "paid"];
+    // 4. Already Processed Check
+    const processableStatuses = ["pending", "notpaid", "paid"];
     if (!processableStatuses.includes(order.status)) {
       console.log(`[Webhook] Order already processed, status: ${order.status}`);
       return new Response(
@@ -115,11 +131,11 @@ serve(async (req) => {
     // This prevents double execution of G2Bulk orders.
     try {
       const { error: updateError } = await supabase
-        .from("topup_orders")
+        .from(orderTable)
         .update({
           status: "paid",
           payment_method: "Kesor KHQR",
-          status_message: `Payment confirmed. Transaction: ${transactionId}. Triggering fulfillment...`,
+          status_message: `Payment confirmed. Transaction: ${transactionId}. ${orderTable === 'topup_orders' ? 'Triggering fulfillment...' : 'Pre-order paid.'}`,
           updated_at: new Date().toISOString(),
         })
         .eq("id", order.id);
