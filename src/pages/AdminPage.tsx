@@ -2736,12 +2736,12 @@ const AdminPage: React.FC = () => {
 
             {/* Pre-order Games */}
             <TabsContent value="preorder-games">
-              <PreorderGamesTab />
+              <div><PreorderGamesTab /></div>
             </TabsContent>
 
             {/* Pre-order Orders */}
             <TabsContent value="preorder-orders">
-              <PreorderOrdersTab />
+              <div><PreorderOrdersTab /></div>
             </TabsContent>
 
             {/* Database Backup */}
