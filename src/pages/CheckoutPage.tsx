@@ -47,15 +47,15 @@ const CheckoutPage = () => {
   }, [items.length, orderComplete, generatedQR, navigate]);
 
   // Generate dynamic KHQR when checkout loads - use ref to prevent double calls
-  const qrGenerationStarted = useState(false)[0];
-  const [hasStartedGeneration, setHasStartedGeneration] = useState(false);
+  const qrGenerationRef = { current: false };
+  const generationGuardRef = useState(() => ({ started: false }))[0];
 
   useEffect(() => {
-    if (ikhodePayment?.isEnabled && items.length > 0 && !generatedQR && !generatingQR && !hasStartedGeneration) {
-      setHasStartedGeneration(true);
+    if (ikhodePayment?.isEnabled && items.length > 0 && !generatedQR && !generatingQR && !generationGuardRef.started) {
+      generationGuardRef.started = true;
       generateKHQR();
     }
-  }, [ikhodePayment?.isEnabled, items.length, generatedQR, generatingQR, hasStartedGeneration]);
+  }, [ikhodePayment?.isEnabled, items.length]);
 
   const generateKHQR = async () => {
     if (items.length === 0) return;
