@@ -28,6 +28,9 @@ const CheckoutPage = () => {
   const { items, getTotal, clearCart, itemCount } = useCart();
   const { settings, ikhodePayment } = useSite();
 
+  // Check if this is a preorder checkout
+  const isPreorder = new URLSearchParams(window.location.search).get('preorder') === 'true';
+
   useFavicon(settings.siteIcon);
 
   const [processing, setProcessing] = useState(false);
@@ -74,6 +77,7 @@ const CheckoutPage = () => {
           currency: settings.packageCurrency || "USD",
           payment_method: "Kesor KHQR",
           g2bulk_product_id: firstItem.g2bulkProductId || null,
+          is_preorder: isPreorder,
         },
       });
 
