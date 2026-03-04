@@ -603,6 +603,17 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: str
       
       if (spkg?.quantity && spkg.quantity > 1) {
         fulfillQuantity = spkg.quantity;
+      } else {
+        // Also check preorder_packages
+        const { data: ppkg } = await supabase
+          .from('preorder_packages')
+          .select('quantity')
+          .eq('g2bulk_product_id', g2bulkProductIdFinal)
+          .maybeSingle();
+        
+        if (ppkg?.quantity && ppkg.quantity > 1) {
+          fulfillQuantity = ppkg.quantity;
+        }
       }
     }
 
