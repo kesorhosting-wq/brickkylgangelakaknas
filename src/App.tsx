@@ -17,6 +17,7 @@ import OrderHistoryPage from "./pages/OrderHistoryPage";
 import AdminPage from "./pages/AdminPage";
 import AuthPage from "./pages/AuthPage";
 import NotFound from "./pages/NotFound";
+import EventsPage from "./pages/EventsPage";
 
 const queryClient = new QueryClient();
 
@@ -37,6 +38,7 @@ const App = () => (
                 <Route path="/checkout" element={<CheckoutPage />} />
                 <Route path="/invoice/:orderId" element={<InvoicePage />} />
                 <Route path="/orders" element={<OrderHistoryPage />} />
+                <Route path="/events" element={<EventsPage />} />
                 <Route path="/auth" element={<AuthPage />} />
                   <Route 
                     path="/admin" 

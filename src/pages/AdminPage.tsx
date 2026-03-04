@@ -30,6 +30,7 @@ import {
   Database,
   Type,
   Copy,
+  Calendar,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -57,6 +58,7 @@ import PackageStockBadge from "@/components/admin/PackageStockBadge";
 import DatabaseExportImport from "@/components/admin/DatabaseExportImport";
 import FontSettingsTab from "@/components/admin/FontSettingsTab";
 import { useG2BulkProductStatus } from "@/hooks/useG2BulkProductStatus";
+import EventsTab from "@/components/admin/EventsTab";
 
 const AdminPage: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -400,7 +402,7 @@ const AdminPage: React.FC = () => {
 
         <div className="container mx-auto px-4 py-6">
           <Tabs defaultValue="settings" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-10 bg-card border border-border">
+            <TabsList className="grid w-full grid-cols-11 bg-card border border-border">
               <TabsTrigger
                 value="settings"
                 className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
@@ -463,6 +465,13 @@ const AdminPage: React.FC = () => {
               >
                 <Key className="w-4 h-4 sm:mr-2" />
                 <span className="hidden sm:inline">API</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="events"
+                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+              >
+                <Calendar className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Events</span>
               </TabsTrigger>
               <TabsTrigger
                 value="backup"
@@ -2700,6 +2709,11 @@ const AdminPage: React.FC = () => {
             {/* API Settings */}
             <TabsContent value="api">
               <ApiSettingsTab />
+            </TabsContent>
+
+            {/* Events */}
+            <TabsContent value="events">
+              <EventsTab />
             </TabsContent>
 
             {/* Database Backup */}
