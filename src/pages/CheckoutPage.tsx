@@ -295,6 +295,7 @@ const CheckoutPage = () => {
                   onComplete={handlePaymentComplete}
                   paymentMethod="Kesor KHQR"
                   wsUrl={generatedQR.wsUrl}
+                  isPreorder={isPreorder}
                 />
               ) : !isIkhodeConfigured ? (
                 <Card>

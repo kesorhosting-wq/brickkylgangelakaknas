@@ -162,19 +162,36 @@ serve(async (req) => {
       }
 
       case "check-status": {
-        const { orderId } = params;
+        const { orderId, is_preorder } = params;
 
-        // Check order status
+        // Check correct table based on order type
+        const tableName = is_preorder ? "preorder_orders" : "topup_orders";
         const { data: order } = await supabase
-          .from("topup_orders")
+          .from(tableName)
           .select("status")
           .eq("id", orderId)
           .maybeSingle();
 
+        // Fallback: check the other table if not found
         if (!order) {
+          const fallbackTable = is_preorder ? "topup_orders" : "preorder_orders";
+          const { data: fallbackOrder } = await supabase
+            .from(fallbackTable)
+            .select("status")
+            .eq("id", orderId)
+            .maybeSingle();
+
+          if (!fallbackOrder) {
+            return new Response(
+              JSON.stringify({ error: "Order not found" }),
+              { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          const status = String(fallbackOrder?.status ?? "pending").toLowerCase();
           return new Response(
-            JSON.stringify({ error: "Order not found" }),
-            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            JSON.stringify({ status, orderId }),
+            { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
