@@ -330,7 +330,7 @@ async function fulfillRechargeOrder(
     const errorMsg = `Could not determine game_code for product: ${order.g2bulk_product_id}`;
     console.error(`[Fulfill-Recharge] ERROR: ${errorMsg}`);
     await supabase
-      .from('topup_orders')
+      .from(tableName)
       .update({ 
         status: 'failed',
         status_message: errorMsg
@@ -343,7 +343,7 @@ async function fulfillRechargeOrder(
     const errorMsg = `Could not determine catalogue_name for product: ${order.g2bulk_product_id}`;
     console.error(`[Fulfill-Recharge] ERROR: ${errorMsg}`);
     await supabase
-      .from('topup_orders')
+      .from(tableName)
       .update({ 
         status: 'failed',
         status_message: errorMsg
@@ -745,8 +745,34 @@ serve(async (req) => {
     // Handle fulfill action (called after payment confirmed)
     if (body.action === 'fulfill' && body.orderId) {
       const isPreorder = body.isPreorder === true;
+      const tableName = isPreorder ? 'preorder_orders' : 'topup_orders';
       console.log('[Process-Topup] Fulfill action for order:', body.orderId, 'isPreorder:', isPreorder);
-      const result = await fulfillG2BulkOrder(supabase, body.orderId, isPreorder ? 'preorder_orders' : 'topup_orders');
+      
+      // For preorders: check if this order has a scheduled_fulfill_at in the future
+      // If so, skip fulfillment - the cron job will handle it at the right time
+      if (isPreorder) {
+        const { data: preorder } = await supabase
+          .from('preorder_orders')
+          .select('scheduled_fulfill_at, status')
+          .eq('id', body.orderId)
+          .maybeSingle();
+        
+        if (preorder?.scheduled_fulfill_at) {
+          const scheduledTime = new Date(preorder.scheduled_fulfill_at).getTime();
+          const now = Date.now();
+          
+          if (scheduledTime > now) {
+            console.log(`[Process-Topup] Preorder ${body.orderId} is scheduled for ${preorder.scheduled_fulfill_at}, skipping auto-fulfill`);
+            return new Response(
+              JSON.stringify({ success: true, status: 'scheduled', message: `Pre-order scheduled for fulfillment at ${preorder.scheduled_fulfill_at}` }),
+              { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+            );
+          }
+          console.log(`[Process-Topup] Preorder ${body.orderId} scheduled time has passed, proceeding with fulfillment`);
+        }
+      }
+      
+      const result = await fulfillG2BulkOrder(supabase, body.orderId, tableName);
       return new Response(
         JSON.stringify(result),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
