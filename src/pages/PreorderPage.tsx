@@ -81,12 +81,6 @@ const PreorderGameCard: React.FC<{
             <h3 className="font-khmer text-[10px] sm:text-base font-bold text-foreground line-clamp-1 text-center">
               {game.game_name}
             </h3>
-            {game.earliest_fulfill && (
-              <p className="text-[8px] sm:text-xs text-gold text-center flex items-center justify-center gap-1">
-                <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-                {new Date(game.earliest_fulfill).toLocaleDateString()}
-              </p>
-            )}
             <Link to={`/preorder/${game.game_slug}`} className="block">
               <Button
                 className="w-full gap-1 sm:gap-2 bg-gradient-to-r from-gold to-gold-dark hover:from-gold-dark hover:to-gold text-background font-semibold transition-all duration-300 shadow-lg hover:shadow-gold/30 text-[9px] sm:text-sm h-7 sm:h-9"
