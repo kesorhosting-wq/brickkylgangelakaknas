@@ -72,6 +72,23 @@ async function getProductType(supabase: any, productId: string): Promise<'card' 
   return product?.product_type === 'card' ? 'card' : 'recharge';
 }
 
+function extractQuantityFromPackageName(packageName?: string | null): number | null {
+  if (!packageName) return null;
+
+  const patterns = [/(?:x|×)\s*(\d+)\b/i, /\b(\d+)\s*(?:x|×)\b/i];
+  for (const pattern of patterns) {
+    const match = packageName.match(pattern);
+    if (!match) continue;
+
+    const quantity = parseInt(match[1], 10);
+    if (Number.isFinite(quantity) && quantity > 1) {
+      return quantity;
+    }
+  }
+
+  return null;
+}
+
 // Fulfill card/voucher order (immediate delivery of codes/keys)
 async function fulfillCardOrder(
   supabase: any, 
@@ -584,6 +601,7 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: str
   try {
     // Look up the package quantity (how many times to trigger G2Bulk)
     let fulfillQuantity = 1;
+    let quantitySource = 'default';
     
     const { data: pkg } = await supabase
       .from('packages')
@@ -593,6 +611,7 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: str
     
     if (pkg?.quantity && pkg.quantity > 1) {
       fulfillQuantity = pkg.quantity;
+      quantitySource = 'packages';
     } else {
       // Also check special_packages
       const { data: spkg } = await supabase
@@ -603,6 +622,7 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: str
       
       if (spkg?.quantity && spkg.quantity > 1) {
         fulfillQuantity = spkg.quantity;
+        quantitySource = 'special_packages';
       } else {
         // Also check preorder_packages
         const { data: ppkg } = await supabase
@@ -613,11 +633,19 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: str
         
         if (ppkg?.quantity && ppkg.quantity > 1) {
           fulfillQuantity = ppkg.quantity;
+          quantitySource = 'preorder_packages';
+        } else {
+          // Final fallback: parse quantity from order package name (e.g. "Weekly x2")
+          const nameQuantity = extractQuantityFromPackageName(order.package_name);
+          if (nameQuantity && nameQuantity > 1) {
+            fulfillQuantity = nameQuantity;
+            quantitySource = 'package_name';
+          }
         }
       }
     }
 
-    console.log(`[Fulfill] Package quantity: ${fulfillQuantity}`);
+    console.log(`[Fulfill] Package quantity: ${fulfillQuantity} (source: ${quantitySource})`);
 
     // Update order to processing
     await supabase
