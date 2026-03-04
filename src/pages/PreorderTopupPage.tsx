@@ -314,6 +314,7 @@ const PreorderTopupPage: React.FC = () => {
       paymentMethodName: paymentMethod?.name || "Unknown",
       g2bulkProductId: pkg.g2bulk_product_id || undefined,
       g2bulkTypeId: pkg.g2bulk_type_id || undefined,
+      scheduledFulfillAt: pkg.scheduled_fulfill_at || undefined,
     });
 
     navigate("/checkout?preorder=true");

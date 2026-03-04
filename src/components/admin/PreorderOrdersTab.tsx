@@ -261,8 +261,20 @@ const PreorderOrdersTab: React.FC = () => {
 
                       {/* Actions */}
                       <div className="flex items-center gap-2">
-                        {/* Manual process button for paid orders */}
-                        {order.status === 'paid' && order.g2bulk_product_id && (
+                        {/* Process on Time button for paid orders with scheduled fulfillment */}
+                        {order.status === 'paid' && order.g2bulk_product_id && order.scheduled_fulfill_at && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled
+                            className="border-gold/50 text-gold opacity-70"
+                          >
+                            <Clock className="w-3 h-3 mr-1" />
+                            Process on {new Date(order.scheduled_fulfill_at).toLocaleDateString()}
+                          </Button>
+                        )}
+                        {/* Manual process button for paid orders without scheduled time */}
+                        {order.status === 'paid' && order.g2bulk_product_id && !order.scheduled_fulfill_at && (
                           <Button
                             size="sm"
                             variant="outline"
