@@ -90,7 +90,7 @@ const EventsPage: React.FC = () => {
                     <img
                       src={event.image}
                       alt={event.title}
-                      className="w-full h-48 sm:h-64 object-cover"
+                      className="w-full h-auto object-contain"
                     />
                   )}
                   <CardContent className="p-4 sm:p-6">
