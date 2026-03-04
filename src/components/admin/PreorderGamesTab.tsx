@@ -7,8 +7,13 @@ import { toast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useSite } from '@/contexts/SiteContext';
 import G2BulkProductSelector from './G2BulkProductSelector';
+import G2BulkAutoImport from './G2BulkAutoImport';
+import PackageStockBadge from './PackageStockBadge';
+import { useG2BulkProductStatus } from '@/hooks/useG2BulkProductStatus';
+import ImageUpload from '@/components/ImageUpload';
 import {
   Plus, Trash2, Edit2, Save, X, ChevronDown, ChevronUp, Package, Clock, Calendar,
+  DollarSign, Link2, Link2Off, ArrowUp, ArrowDown, Copy,
 } from 'lucide-react';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -22,6 +27,7 @@ interface PreorderGame {
   game_name?: string;
   game_image?: string;
   game_slug?: string;
+  g2bulk_category_id?: string;
 }
 
 interface PreorderPackage {
@@ -44,6 +50,7 @@ interface PreorderPackage {
 
 const PreorderGamesTab: React.FC = () => {
   const { games } = useSite();
+  const { checkProductStatus } = useG2BulkProductStatus();
   const [preorderGames, setPreorderGames] = useState<PreorderGame[]>([]);
   const [selectedGameId, setSelectedGameId] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
@@ -51,6 +58,7 @@ const PreorderGamesTab: React.FC = () => {
   const [packages, setPackages] = useState<PreorderPackage[]>([]);
   const [editingPackage, setEditingPackage] = useState<string | null>(null);
   const [editPkgData, setEditPkgData] = useState<any>({});
+  const [packageListSort, setPackageListSort] = useState<'price' | 'manual'>('manual');
   const [newPkg, setNewPkg] = useState({
     name: '', amount: '', price: 0, icon: '', label: '',
     labelBgColor: '#dc2626', labelTextColor: '#ffffff', labelIcon: '',
@@ -69,7 +77,6 @@ const PreorderGamesTab: React.FC = () => {
         .order('sort_order', { ascending: true });
       if (error) throw error;
 
-      // Enrich with game info
       const enriched = (data || []).map((pg: any) => {
         const game = games.find(g => g.id === pg.game_id);
         return {
@@ -77,6 +84,7 @@ const PreorderGamesTab: React.FC = () => {
           game_name: game?.name || 'Unknown',
           game_image: game?.image || '',
           game_slug: game?.slug || '',
+          g2bulk_category_id: game?.g2bulkCategoryId || '',
         };
       });
       setPreorderGames(enriched);
@@ -93,7 +101,6 @@ const PreorderGamesTab: React.FC = () => {
       toast({ title: 'Please select a game', variant: 'destructive' });
       return;
     }
-    // Check if already added
     if (preorderGames.some(pg => pg.game_id === selectedGameId)) {
       toast({ title: 'Game already added to pre-order', variant: 'destructive' });
       return;
@@ -239,7 +246,46 @@ const PreorderGamesTab: React.FC = () => {
     }
   };
 
-  // Filter out games already added
+  const clonePkg = async (gameId: string, pkg: PreorderPackage) => {
+    try {
+      const { error } = await supabase.from('preorder_packages').insert({
+        game_id: gameId,
+        name: `${pkg.name} (Copy)`,
+        amount: pkg.amount,
+        price: pkg.price,
+        icon: pkg.icon,
+        label: pkg.label,
+        label_bg_color: pkg.label_bg_color,
+        label_text_color: pkg.label_text_color,
+        label_icon: pkg.label_icon,
+        g2bulk_product_id: pkg.g2bulk_product_id,
+        g2bulk_type_id: pkg.g2bulk_type_id,
+        quantity: pkg.quantity,
+        scheduled_fulfill_at: pkg.scheduled_fulfill_at,
+        sort_order: packages.length,
+      });
+      if (error) throw error;
+      toast({ title: 'Package cloned!' });
+      loadPackages(gameId);
+    } catch (error) {
+      toast({ title: 'Failed to clone', variant: 'destructive' });
+    }
+  };
+
+  const movePkg = async (gameId: string, pkgId: string, direction: 'up' | 'down') => {
+    const idx = packages.findIndex(p => p.id === pkgId);
+    if (idx < 0) return;
+    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= packages.length) return;
+    try {
+      await supabase.from('preorder_packages').update({ sort_order: swapIdx }).eq('id', packages[idx].id);
+      await supabase.from('preorder_packages').update({ sort_order: idx }).eq('id', packages[swapIdx].id);
+      loadPackages(gameId);
+    } catch (error) {
+      toast({ title: 'Failed to reorder', variant: 'destructive' });
+    }
+  };
+
   const availableGames = games.filter(g => !preorderGames.some(pg => pg.game_id === g.id));
 
   if (isLoading) {
@@ -252,6 +298,10 @@ const PreorderGamesTab: React.FC = () => {
       </Card>
     );
   }
+
+  const sortedPackages = packageListSort === 'price'
+    ? [...packages].sort((a, b) => a.price - b.price)
+    : packages;
 
   return (
     <div className="space-y-6">
@@ -283,7 +333,6 @@ const PreorderGamesTab: React.FC = () => {
             </Button>
           </div>
 
-          {/* Pre-order Game List */}
           {preorderGames.length === 0 ? (
             <p className="text-center text-muted-foreground py-8">No pre-order games yet. Add one above.</p>
           ) : (
@@ -306,7 +355,7 @@ const PreorderGamesTab: React.FC = () => {
                     <Button
                       variant="ghost" size="sm"
                       onClick={(e) => { e.stopPropagation(); removePreorderGame(pg.id); }}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-destructive hover:text-destructive"
                     >
                       <Trash2 className="w-4 h-4" />
                     </Button>
@@ -316,121 +365,127 @@ const PreorderGamesTab: React.FC = () => {
                   {/* Expanded packages section */}
                   {expandedGame === pg.game_id && (
                     <div className="p-4 bg-secondary/20 border-t border-border space-y-4">
-                      <h4 className="font-bold flex items-center gap-2">
-                        <Package className="w-4 h-4 text-gold" />
+                      <h4 className="font-semibold flex items-center gap-2">
+                        <DollarSign className="w-4 h-4 text-gold" />
                         Pre-order Packages
                       </h4>
 
-                      {/* Existing packages */}
-                      {packages.map(pkg => (
-                        <div key={pkg.id} className="p-3 rounded-lg border border-border bg-card">
-                          {editingPackage === pkg.id ? (
-                            <div className="space-y-3">
-                              <div className="grid grid-cols-2 gap-2">
-                                <Input placeholder="Name" value={editPkgData.name}
-                                  onChange={e => setEditPkgData((p: any) => ({ ...p, name: e.target.value }))} />
-                                <Input placeholder="Amount" value={editPkgData.amount}
-                                  onChange={e => setEditPkgData((p: any) => ({ ...p, amount: e.target.value }))} />
-                              </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <Input type="number" placeholder="Price" value={editPkgData.price}
-                                  onChange={e => setEditPkgData((p: any) => ({ ...p, price: Number(e.target.value) }))} />
-                                <Input type="number" placeholder="Qty (empty=1x)" value={editPkgData.quantity ?? ''}
-                                  onChange={e => setEditPkgData((p: any) => ({ ...p, quantity: e.target.value ? Number(e.target.value) : null }))} />
-                              </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <Input placeholder="Icon URL" value={editPkgData.icon}
-                                  onChange={e => setEditPkgData((p: any) => ({ ...p, icon: e.target.value }))} />
-                                <Input placeholder="Label" value={editPkgData.label}
-                                  onChange={e => setEditPkgData((p: any) => ({ ...p, label: e.target.value }))} />
-                              </div>
-                              <div className="grid grid-cols-2 gap-2">
-                                <Input placeholder="G2Bulk Product ID" value={editPkgData.g2bulkProductId}
-                                  onChange={e => setEditPkgData((p: any) => ({ ...p, g2bulkProductId: e.target.value }))} />
-                                <Input placeholder="G2Bulk Type ID" value={editPkgData.g2bulkTypeId}
-                                  onChange={e => setEditPkgData((p: any) => ({ ...p, g2bulkTypeId: e.target.value }))} />
-                              </div>
-                              {/* Scheduled fulfillment time */}
-                              <div className="p-3 rounded-lg border border-gold/30 bg-gold/5">
-                                <label className="flex items-center gap-2 text-sm font-bold mb-2">
-                                  <Calendar className="w-4 h-4 text-gold" />
-                                  Scheduled Fulfillment Time
-                                </label>
-                                <Input
-                                  type="datetime-local"
-                                  step="1"
-                                  value={editPkgData.scheduledFulfillAt}
-                                  onChange={e => setEditPkgData((p: any) => ({ ...p, scheduledFulfillAt: e.target.value }))}
-                                  className="border-gold/50"
-                                />
-                                <p className="text-xs text-muted-foreground mt-1">
-                                  Orders will NOT auto-process until this date/time
-                                </p>
-                              </div>
-                              <div className="flex gap-2">
-                                <Button size="sm" onClick={() => saveEditPkg(pg.game_id, pkg.id)} className="bg-gold hover:bg-gold/90">
-                                  <Save className="w-3 h-3 mr-1" /> Save
-                                </Button>
-                                <Button size="sm" variant="outline" onClick={() => setEditingPackage(null)}>
-                                  <X className="w-3 h-3 mr-1" /> Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="font-bold">{pkg.name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {pkg.amount} • ${pkg.price} • Qty: {pkg.quantity ?? 1}x
-                                  {pkg.g2bulk_product_id && ` • G2: ${pkg.g2bulk_product_id}`}
-                                </p>
-                                {pkg.scheduled_fulfill_at && (
-                                  <p className="text-xs text-gold flex items-center gap-1 mt-1">
-                                    <Clock className="w-3 h-3" />
-                                    Fulfill at: {new Date(pkg.scheduled_fulfill_at).toLocaleString()}
-                                  </p>
-                                )}
-                              </div>
-                              <div className="flex gap-1">
-                                <Button size="sm" variant="ghost" onClick={() => startEditPkg(pkg)}>
-                                  <Edit2 className="w-3 h-3" />
-                                </Button>
-                                <Button size="sm" variant="ghost" className="text-red-500" onClick={() => deletePkg(pg.game_id, pkg.id)}>
-                                  <Trash2 className="w-3 h-3" />
-                                </Button>
-                              </div>
-                            </div>
-                          )}
+                      {/* Add New Package */}
+                      <div className="bg-secondary/50 rounded-lg p-3 space-y-3">
+                        <p className="text-sm font-medium">Add New Package</p>
+                        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                          <div className="col-span-2">
+                            <Input
+                              placeholder="Package Name"
+                              value={newPkg.name}
+                              onChange={e => setNewPkg(p => ({ ...p, name: e.target.value }))}
+                              className="border-gold/50 text-sm"
+                            />
+                          </div>
+                          <Input
+                            type="text"
+                            placeholder="Amount"
+                            value={newPkg.amount}
+                            onChange={e => setNewPkg(p => ({ ...p, amount: e.target.value }))}
+                            className="border-gold/50 text-sm"
+                          />
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="Price"
+                            value={newPkg.price || ''}
+                            onChange={e => setNewPkg(p => ({ ...p, price: Number(e.target.value) }))}
+                            className="border-gold/50 text-sm"
+                          />
+                          <Input
+                            type="number"
+                            placeholder="Qty (empty=1x)"
+                            value={newPkg.quantity ?? ''}
+                            onChange={e => setNewPkg(p => ({ ...p, quantity: e.target.value ? Number(e.target.value) : null }))}
+                            className="border-gold/50 text-sm"
+                          />
                         </div>
-                      ))}
 
-                      {/* Add new package */}
-                      <div className="p-3 rounded-lg border border-dashed border-gold/30 space-y-3">
-                        <h5 className="text-sm font-bold">Add Pre-order Package</h5>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Input placeholder="Package Name" value={newPkg.name}
-                            onChange={e => setNewPkg(p => ({ ...p, name: e.target.value }))} />
-                          <Input placeholder="Amount (e.g. 100 Diamonds)" value={newPkg.amount}
-                            onChange={e => setNewPkg(p => ({ ...p, amount: e.target.value }))} />
+                        {/* G2Bulk Product Selector for new package */}
+                        {pg.g2bulk_category_id && (
+                          <div className="border border-dashed border-gold/30 rounded-lg p-2 bg-gold/5">
+                            <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                              <Link2 className="w-3 h-3" />
+                              Link to G2Bulk Product (optional)
+                            </p>
+                            <G2BulkProductSelector
+                              value={newPkg.g2bulkProductId}
+                              gameName={pg.game_name || ''}
+                              g2bulkCategoryId={pg.g2bulk_category_id}
+                              onChange={(productId, typeId) => {
+                                setNewPkg(p => ({
+                                  ...p,
+                                  g2bulkProductId: productId || '',
+                                  g2bulkTypeId: typeId || '',
+                                }));
+                              }}
+                            />
+                          </div>
+                        )}
+
+                        <div className="flex gap-2 items-end flex-wrap">
+                          <div className="w-16">
+                            <ImageUpload
+                              value={newPkg.icon}
+                              onChange={(url) => setNewPkg(p => ({ ...p, icon: url }))}
+                              folder="packages"
+                              aspectRatio="square"
+                              placeholder="Icon"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-[150px]">
+                            <Input
+                              placeholder="Label text (optional)"
+                              value={newPkg.label}
+                              onChange={e => setNewPkg(p => ({ ...p, label: e.target.value }))}
+                              className="border-gold/50 text-sm"
+                            />
+                          </div>
+                          <Button
+                            size="sm"
+                            onClick={() => handleAddPackage(pg.game_id)}
+                            className="bg-gold hover:bg-gold/90 text-primary-foreground"
+                          >
+                            <Plus className="w-4 h-4 mr-1" /> Add
+                          </Button>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Input type="number" placeholder="Price ($)" value={newPkg.price || ''}
-                            onChange={e => setNewPkg(p => ({ ...p, price: Number(e.target.value) }))} />
-                          <Input type="number" placeholder="Qty (empty=1x)" value={newPkg.quantity ?? ''}
-                            onChange={e => setNewPkg(p => ({ ...p, quantity: e.target.value ? Number(e.target.value) : null }))} />
+
+                        {/* Label styling row */}
+                        <div className="flex gap-2 items-center flex-wrap">
+                          <div className="w-10">
+                            <ImageUpload
+                              value={newPkg.labelIcon}
+                              onChange={(url) => setNewPkg(p => ({ ...p, labelIcon: url }))}
+                              folder="packages"
+                              aspectRatio="square"
+                              placeholder="🏷️"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground">BG:</span>
+                            <input
+                              type="color"
+                              value={newPkg.labelBgColor}
+                              onChange={e => setNewPkg(p => ({ ...p, labelBgColor: e.target.value }))}
+                              className="w-8 h-8 rounded cursor-pointer border border-border"
+                            />
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <span className="text-xs text-muted-foreground">Text:</span>
+                            <input
+                              type="color"
+                              value={newPkg.labelTextColor}
+                              onChange={e => setNewPkg(p => ({ ...p, labelTextColor: e.target.value }))}
+                              className="w-8 h-8 rounded cursor-pointer border border-border"
+                            />
+                          </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Input placeholder="G2Bulk Product ID" value={newPkg.g2bulkProductId}
-                            onChange={e => setNewPkg(p => ({ ...p, g2bulkProductId: e.target.value }))} />
-                          <Input placeholder="G2Bulk Type ID" value={newPkg.g2bulkTypeId}
-                            onChange={e => setNewPkg(p => ({ ...p, g2bulkTypeId: e.target.value }))} />
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          <Input placeholder="Icon URL" value={newPkg.icon}
-                            onChange={e => setNewPkg(p => ({ ...p, icon: e.target.value }))} />
-                          <Input placeholder="Label" value={newPkg.label}
-                            onChange={e => setNewPkg(p => ({ ...p, label: e.target.value }))} />
-                        </div>
+
                         {/* Scheduled fulfillment time */}
                         <div className="p-3 rounded-lg border border-gold/30 bg-gold/5">
                           <label className="flex items-center gap-2 text-sm font-bold mb-2">
@@ -445,12 +500,237 @@ const PreorderGamesTab: React.FC = () => {
                             className="border-gold/50"
                           />
                           <p className="text-xs text-muted-foreground mt-1">
-                            Set when orders should be processed (year/month/day/hour/minute/second)
+                            Orders will NOT auto-process until this date/time
                           </p>
                         </div>
-                        <Button size="sm" onClick={() => handleAddPackage(pg.game_id)} className="bg-gold hover:bg-gold/90">
-                          <Plus className="w-3 h-3 mr-1" /> Add Package
-                        </Button>
+                      </div>
+
+                      {/* G2Bulk Auto Import */}
+                      {pg.g2bulk_category_id && (
+                        <G2BulkAutoImport
+                          gameId={pg.game_id}
+                          gameName={pg.game_name || ''}
+                          g2bulkCategoryId={pg.g2bulk_category_id}
+                          existingProductIds={packages
+                            .filter(p => p.g2bulk_product_id)
+                            .map(p => p.g2bulk_product_id!)}
+                          onImport={async (products) => {
+                            for (const product of products) {
+                              await supabase.from('preorder_packages').insert({
+                                game_id: pg.game_id,
+                                name: product.name,
+                                amount: product.amount,
+                                price: product.price,
+                                g2bulk_product_id: product.g2bulkProductId,
+                                g2bulk_type_id: product.g2bulkTypeId,
+                                sort_order: packages.length,
+                              });
+                            }
+                            loadPackages(pg.game_id);
+                          }}
+                        />
+                      )}
+
+                      {/* Package List Header */}
+                      <div className="flex items-center justify-between gap-3">
+                        <p className="text-sm font-medium">Packages</p>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button" size="sm"
+                            variant={packageListSort === 'price' ? 'default' : 'outline'}
+                            onClick={() => setPackageListSort('price')}
+                          >
+                            Price ↑
+                          </Button>
+                          <Button
+                            type="button" size="sm"
+                            variant={packageListSort === 'manual' ? 'default' : 'outline'}
+                            onClick={() => setPackageListSort('manual')}
+                          >
+                            Manual
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Package List */}
+                      <div className="space-y-2">
+                        {sortedPackages.map((pkg, idx) => (
+                          <div key={pkg.id} className="bg-card border border-border rounded-lg p-3">
+                            {editingPackage === pkg.id ? (
+                              <div className="space-y-3">
+                                <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                                  <div className="col-span-2">
+                                    <Input value={editPkgData.name}
+                                      onChange={e => setEditPkgData((p: any) => ({ ...p, name: e.target.value }))}
+                                      className="border-gold/50 text-sm" />
+                                  </div>
+                                  <Input type="text" value={editPkgData.amount}
+                                    onChange={e => setEditPkgData((p: any) => ({ ...p, amount: e.target.value }))}
+                                    className="border-gold/50 text-sm" />
+                                  <Input type="number" step="0.01" value={editPkgData.price}
+                                    onChange={e => setEditPkgData((p: any) => ({ ...p, price: Number(e.target.value) }))}
+                                    className="border-gold/50 text-sm" />
+                                  <Input type="number" placeholder="Qty (empty=1x)" value={editPkgData.quantity ?? ''}
+                                    onChange={e => setEditPkgData((p: any) => ({ ...p, quantity: e.target.value ? Number(e.target.value) : null }))}
+                                    className="border-gold/50 text-sm" />
+                                </div>
+                                <div className="flex gap-2 items-center flex-wrap">
+                                  <div className="w-12">
+                                    <ImageUpload
+                                      value={editPkgData.icon}
+                                      onChange={(url) => setEditPkgData((p: any) => ({ ...p, icon: url }))}
+                                      folder="packages"
+                                      aspectRatio="square"
+                                    />
+                                  </div>
+                                  <div className="flex-1 min-w-[120px]">
+                                    <Input placeholder="Label text (optional)" value={editPkgData.label}
+                                      onChange={e => setEditPkgData((p: any) => ({ ...p, label: e.target.value }))}
+                                      className="border-gold/50 text-sm" />
+                                  </div>
+                                  <div className="w-10">
+                                    <ImageUpload
+                                      value={editPkgData.labelIcon}
+                                      onChange={(url) => setEditPkgData((p: any) => ({ ...p, labelIcon: url }))}
+                                      folder="packages"
+                                      aspectRatio="square"
+                                      placeholder="🏷️"
+                                    />
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <input type="color" value={editPkgData.labelBgColor}
+                                      onChange={e => setEditPkgData((p: any) => ({ ...p, labelBgColor: e.target.value }))}
+                                      className="w-6 h-6 rounded cursor-pointer border border-border" />
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <input type="color" value={editPkgData.labelTextColor}
+                                      onChange={e => setEditPkgData((p: any) => ({ ...p, labelTextColor: e.target.value }))}
+                                      className="w-6 h-6 rounded cursor-pointer border border-border" />
+                                  </div>
+                                  <Button variant="outline" size="sm" onClick={() => setEditingPackage(null)}>
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                  <Button size="sm" onClick={() => saveEditPkg(pg.game_id, pkg.id)}
+                                    className="bg-gold hover:bg-gold/90 text-primary-foreground">
+                                    <Save className="w-3 h-3" />
+                                  </Button>
+                                </div>
+
+                                {/* G2Bulk selector in edit mode */}
+                                {pg.g2bulk_category_id && (
+                                  <G2BulkProductSelector
+                                    value={editPkgData.g2bulkProductId}
+                                    gameName={pg.game_name || ''}
+                                    g2bulkCategoryId={pg.g2bulk_category_id}
+                                    onChange={(productId, typeId) => {
+                                      setEditPkgData((p: any) => ({
+                                        ...p,
+                                        g2bulkProductId: productId || '',
+                                        g2bulkTypeId: typeId || '',
+                                      }));
+                                    }}
+                                  />
+                                )}
+
+                                {/* Scheduled fulfillment in edit */}
+                                <div className="p-3 rounded-lg border border-gold/30 bg-gold/5">
+                                  <label className="flex items-center gap-2 text-sm font-bold mb-2">
+                                    <Calendar className="w-4 h-4 text-gold" />
+                                    Scheduled Fulfillment Time
+                                  </label>
+                                  <Input
+                                    type="datetime-local" step="1"
+                                    value={editPkgData.scheduledFulfillAt}
+                                    onChange={e => setEditPkgData((p: any) => ({ ...p, scheduledFulfillAt: e.target.value }))}
+                                    className="border-gold/50"
+                                  />
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Orders will NOT auto-process until this date/time
+                                  </p>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className={`flex items-center gap-3 ${pkg.g2bulk_product_id ? 'border-l-2 border-l-green-500 pl-2' : 'border-l-2 border-l-orange-400 pl-2'}`}>
+                                {pkg.icon ? (
+                                  <img src={pkg.icon} alt={pkg.name} className="w-8 h-8 rounded object-cover" />
+                                ) : (
+                                  <div className="w-8 h-8 bg-gold/20 rounded flex items-center justify-center text-xs">
+                                    {pkg.amount}
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 flex-wrap">
+                                    <p className="font-medium text-sm">{pkg.name}</p>
+                                    {pkg.g2bulk_product_id ? (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-green-500/10 text-green-600 text-[10px] rounded-full border border-green-500/20">
+                                        <Link2 className="w-3 h-3" /> Linked
+                                      </span>
+                                    ) : (
+                                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 bg-orange-500/10 text-orange-600 text-[10px] rounded-full border border-orange-500/20">
+                                        <Link2Off className="w-3 h-3" /> Manual
+                                      </span>
+                                    )}
+                                    <PackageStockBadge
+                                      g2bulkProductId={pkg.g2bulk_product_id}
+                                      productStatus={pkg.g2bulk_product_id ? checkProductStatus(pkg.g2bulk_product_id) : undefined}
+                                    />
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">
+                                    {pkg.amount} units{pkg.label && ` • ${pkg.label}`} • Qty: {pkg.quantity ?? 1}x
+                                  </p>
+                                  {pkg.scheduled_fulfill_at && (
+                                    <p className="text-xs text-gold flex items-center gap-1 mt-1">
+                                      <Clock className="w-3 h-3" />
+                                      Fulfill at: {new Date(pkg.scheduled_fulfill_at).toLocaleString()}
+                                    </p>
+                                  )}
+                                  {pg.g2bulk_category_id && (
+                                    <G2BulkProductSelector
+                                      value={pkg.g2bulk_product_id}
+                                      gameName={pg.game_name || ''}
+                                      g2bulkCategoryId={pg.g2bulk_category_id}
+                                      onChange={async (productId, typeId) => {
+                                        await supabase.from('preorder_packages').update({
+                                          g2bulk_product_id: productId || null,
+                                          g2bulk_type_id: typeId || null,
+                                        }).eq('id', pkg.id);
+                                        loadPackages(pg.game_id);
+                                      }}
+                                    />
+                                  )}
+                                </div>
+                                <p className="font-bold text-gold">${pkg.price.toFixed(2)}</p>
+                                <div className="flex gap-1">
+                                  <Button variant="ghost" size="icon" className="h-7 w-7"
+                                    onClick={() => movePkg(pg.game_id, pkg.id, 'up')}
+                                    disabled={packageListSort === 'price' || idx === 0}>
+                                    <ArrowUp className="w-3 h-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7"
+                                    onClick={() => movePkg(pg.game_id, pkg.id, 'down')}
+                                    disabled={packageListSort === 'price' || idx === sortedPackages.length - 1}>
+                                    <ArrowDown className="w-3 h-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon"
+                                    className="h-7 w-7 text-blue-500 hover:text-blue-600 hover:bg-blue-500/10"
+                                    title="Clone Package"
+                                    onClick={() => clonePkg(pg.game_id, pkg)}>
+                                    <Copy className="w-3 h-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon" className="h-7 w-7"
+                                    onClick={() => startEditPkg(pkg)}>
+                                    <Edit2 className="w-3 h-3" />
+                                  </Button>
+                                  <Button variant="ghost" size="icon"
+                                    className="h-7 w-7 text-destructive hover:text-destructive"
+                                    onClick={() => deletePkg(pg.game_id, pkg.id)}>
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        ))}
                       </div>
                     </div>
                   )}
