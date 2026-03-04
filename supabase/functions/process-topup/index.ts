@@ -771,14 +771,19 @@ serve(async (req) => {
       currency,
       payment_method,
       g2bulk_product_id,
-      user_id
+      user_id,
+      is_preorder
     } = body;
 
-    console.log('[Process-Topup] Creating order:', { game_name, package_name, player_id, g2bulk_product_id });
+    console.log('[Process-Topup] Creating order:', { game_name, package_name, player_id, g2bulk_product_id, is_preorder });
+
+    // Determine which table to insert into
+    const tableName = is_preorder ? 'preorder_orders' : 'topup_orders';
+    const defaultStatus = is_preorder ? 'notpaid' : 'pending';
 
     // Create order record
     const { data: order, error: orderError } = await supabase
-      .from('topup_orders')
+      .from(tableName)
       .insert({
         game_name,
         package_name,
@@ -790,7 +795,7 @@ serve(async (req) => {
         payment_method,
         g2bulk_product_id: g2bulk_product_id || null,
         user_id: user_id || null,
-        status: 'pending'
+        status: defaultStatus
       })
       .select()
       .single();
@@ -803,16 +808,17 @@ serve(async (req) => {
       );
     }
 
-    console.log('[Process-Topup] Order created:', order.id);
+    console.log(`[Process-Topup] ${is_preorder ? 'Pre-order' : 'Order'} created:`, order.id);
 
     // Return order info - fulfillment will happen after payment is confirmed
     return new Response(
       JSON.stringify({ 
         success: true, 
         order_id: order.id,
-        status: 'pending',
+        status: defaultStatus,
         has_g2bulk: !!g2bulk_product_id,
-        message: 'Order created. Awaiting payment confirmation.'
+        is_preorder: !!is_preorder,
+        message: is_preorder ? 'Pre-order created. Awaiting payment confirmation.' : 'Order created. Awaiting payment confirmation.'
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
