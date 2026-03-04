@@ -405,100 +405,102 @@ const AdminPage: React.FC = () => {
         </header>
 
         <div className="container mx-auto px-4 py-6">
-          <Tabs defaultValue="settings" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-13 bg-card border border-border">
+          <Tabs defaultValue="settings" className="flex flex-col md:flex-row gap-6" orientation="vertical">
+            <TabsList className="flex flex-row md:flex-col md:w-48 shrink-0 bg-card border border-border h-auto p-1 overflow-x-auto md:overflow-x-visible">
               <TabsTrigger
                 value="settings"
-                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
-                <Settings className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Site</span>
+                <Settings className="w-4 h-4 mr-2 shrink-0" />
+                <span>Site</span>
               </TabsTrigger>
               <TabsTrigger
                 value="fonts"
-                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
-                <Type className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Fonts</span>
+                <Type className="w-4 h-4 mr-2 shrink-0" />
+                <span>Fonts</span>
               </TabsTrigger>
               <TabsTrigger
                 value="home-edit"
-                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
-                <Home className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Home</span>
+                <Home className="w-4 h-4 mr-2 shrink-0" />
+                <span>Home</span>
               </TabsTrigger>
               <TabsTrigger
                 value="games"
-                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
-                <Package className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Games</span>
+                <Package className="w-4 h-4 mr-2 shrink-0" />
+                <span>Games</span>
               </TabsTrigger>
               <TabsTrigger
                 value="payments"
-                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
-                <CreditCard className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Pay</span>
+                <CreditCard className="w-4 h-4 mr-2 shrink-0" />
+                <span>Payments</span>
               </TabsTrigger>
               <TabsTrigger
                 value="qr-settings"
-                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
-                <QrCode className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">QR</span>
+                <QrCode className="w-4 h-4 mr-2 shrink-0" />
+                <span>QR Settings</span>
               </TabsTrigger>
               <TabsTrigger
                 value="orders"
-                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
-                <ShoppingCart className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Orders</span>
+                <ShoppingCart className="w-4 h-4 mr-2 shrink-0" />
+                <span>Orders</span>
               </TabsTrigger>
               <TabsTrigger
                 value="verification"
-                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
-                <Shield className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Verify</span>
+                <Shield className="w-4 h-4 mr-2 shrink-0" />
+                <span>Verify</span>
               </TabsTrigger>
               <TabsTrigger
                 value="api"
-                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
-                <Key className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">API</span>
+                <Key className="w-4 h-4 mr-2 shrink-0" />
+                <span>API</span>
               </TabsTrigger>
               <TabsTrigger
                 value="events"
-                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
-                <Calendar className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Events</span>
+                <Calendar className="w-4 h-4 mr-2 shrink-0" />
+                <span>Events</span>
               </TabsTrigger>
               <TabsTrigger
                 value="preorder-games"
-                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
-                <Clock className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Pre-order</span>
+                <Clock className="w-4 h-4 mr-2 shrink-0" />
+                <span>Pre-order</span>
               </TabsTrigger>
               <TabsTrigger
                 value="preorder-orders"
-                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
-                <ShoppingBag className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">PO Orders</span>
+                <ShoppingBag className="w-4 h-4 mr-2 shrink-0" />
+                <span>PO Orders</span>
               </TabsTrigger>
               <TabsTrigger
                 value="backup"
-                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
-                <Database className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline">Backup</span>
+                <Database className="w-4 h-4 mr-2 shrink-0" />
+                <span>Backup</span>
               </TabsTrigger>
             </TabsList>
+
+            <div className="flex-1 min-w-0">
 
             {/* Site Settings */}
             <TabsContent value="settings">
@@ -2753,6 +2755,7 @@ const AdminPage: React.FC = () => {
             <TabsContent value="fonts">
               <FontSettingsTab />
             </TabsContent>
+            </div>
           </Tabs>
         </div>
       </div>
