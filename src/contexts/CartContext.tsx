@@ -18,6 +18,8 @@ export interface CartItem {
   // G2Bulk integration
   g2bulkProductId?: string;
   g2bulkTypeId?: string;
+  // Pre-order
+  scheduledFulfillAt?: string;
 }
 
 interface CartContextType {

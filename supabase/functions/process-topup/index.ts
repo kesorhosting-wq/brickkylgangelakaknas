@@ -78,7 +78,8 @@ async function fulfillCardOrder(
   orderId: string,
   quantity: number, 
   order: any, 
-  apiKey: string
+  apiKey: string,
+  tableName: string = 'topup_orders'
 ) {
   console.log(`[Fulfill-Card] Creating card order for: ${orderId}`);
 
@@ -125,7 +126,7 @@ async function fulfillCardOrder(
     const statusMessage = `G2Bulk Card Order: ${g2bulkOrderIdStr}. ${allDeliveryItems.length} code(s) delivered (${allOrderIds.length}/${quantity} succeeded).`;
 
     await supabase
-      .from('topup_orders')
+      .from(tableName)
       .update({ 
         g2bulk_order_id: g2bulkOrderIdStr,
         status: allOrderIds.length === quantity ? 'completed' : 'partial',
@@ -148,7 +149,7 @@ async function fulfillCardOrder(
     return { success: true, g2bulk_order_id: g2bulkOrderIdStr, status: allOrderIds.length === quantity ? 'completed' : 'partial', cards: allDeliveryItems };
   } else {
     await supabase
-      .from('topup_orders')
+      .from(tableName)
       .update({ 
         status: 'failed',
         status_message: `G2Bulk Card Error: ${lastError}`
@@ -176,7 +177,8 @@ async function fulfillRechargeOrder(
   orderId: string, 
   order: any, 
   apiKey: string,
-  quantity: number = 1
+  quantity: number = 1,
+  tableName: string = 'topup_orders'
 ) {
   console.log(`[Fulfill-Recharge] ========== START ==========`);
   console.log(`[Fulfill-Recharge] Order ID: ${orderId}`);
@@ -420,7 +422,7 @@ async function fulfillRechargeOrder(
     }
 
     await supabase
-      .from('topup_orders')
+      .from(tableName)
       .update({ 
         g2bulk_order_id: g2bulkOrderIdStr,
         status: finalStatus,
@@ -445,7 +447,7 @@ async function fulfillRechargeOrder(
   } else {
     console.error(`[Fulfill-Recharge] All ${quantity} orders failed: ${lastError}`);
     await supabase
-      .from('topup_orders')
+      .from(tableName)
       .update({ 
         status: 'failed',
         status_message: `G2Bulk Error (×${quantity}): ${lastError}`
@@ -468,12 +470,12 @@ async function fulfillRechargeOrder(
   }
 }
 
-async function fulfillG2BulkOrder(supabase: any, orderId: string) {
+async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: string = 'topup_orders') {
   console.log(`[Fulfill] ========== STARTING G2BULK FULFILLMENT ==========`);
-  console.log(`[Fulfill] Order ID: ${orderId}`);
+  console.log(`[Fulfill] Order ID: ${orderId}, Table: ${tableName}`);
   
   const { data: order, error: orderError } = await supabase
-    .from('topup_orders')
+    .from(tableName)
     .select('*')
     .eq('id', orderId)
     .maybeSingle();
@@ -485,7 +487,7 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string) {
 
   // GUARD: Prevent double-execution - only process if status is 'paid' or 'pending'
   // If already processing/completed/failed, skip to prevent duplicate G2Bulk orders
-  const allowedStatuses = ['paid', 'pending'];
+  const allowedStatuses = ['paid', 'pending', 'notpaid'];
   if (!allowedStatuses.includes(order.status)) {
     console.log(`[Fulfill] Order already ${order.status}, skipping to prevent double-execution`);
     return { success: true, status: order.status, message: 'Already processed' };
@@ -494,7 +496,7 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string) {
   // IMMEDIATELY update to 'processing' to prevent double-execution and show user status
   console.log(`[Fulfill] Updating order ${orderId} to processing status`);
   await supabase
-    .from('topup_orders')
+    .from(tableName)
     .update({ 
       status: 'processing',
       status_message: 'Processing order with G2Bulk...'
@@ -539,7 +541,7 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string) {
     if (g2bulkProductId) {
       console.log(`[Fulfill] Resolved g2bulk_product_id=${g2bulkProductId} for order ${orderId}`);
       await supabase
-        .from('topup_orders')
+        .from(tableName)
         .update({ g2bulk_product_id: g2bulkProductId })
         .eq('id', orderId);
     }
@@ -548,7 +550,7 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string) {
   if (!g2bulkProductId) {
     console.log('[Fulfill] No G2Bulk product linked (and could not resolve), marking as manual fulfillment');
     await supabase
-      .from('topup_orders')
+      .from(tableName)
       .update({ 
         status: 'pending_manual',
         status_message: 'No G2Bulk product linked. Please link a package to a G2Bulk product in admin, then retry.'
@@ -568,7 +570,7 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string) {
   if (!apiConfig?.is_enabled || !apiConfig.api_secret) {
     console.log('[Fulfill] G2Bulk not configured, marking as manual fulfillment');
     await supabase
-      .from('topup_orders')
+      .from(tableName)
       .update({ 
         status: 'pending_manual',
         status_message: 'G2Bulk API not configured. Manual fulfillment required.'
@@ -608,7 +610,7 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string) {
 
     // Update order to processing
     await supabase
-      .from('topup_orders')
+      .from(tableName)
       .update({ 
         status: 'processing',
         status_message: `Sending to G2Bulk for fulfillment (×${fulfillQuantity})...`
@@ -621,14 +623,14 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string) {
     console.log(`[Fulfill] Product type: ${productType}`);
     
     if (productType === 'card') {
-      return await fulfillCardOrder(supabase, orderId, fulfillQuantity, orderForFulfillment, apiKey);
+      return await fulfillCardOrder(supabase, orderId, fulfillQuantity, orderForFulfillment, apiKey, tableName);
     } else {
-      return await fulfillRechargeOrder(supabase, orderId, orderForFulfillment, apiKey, fulfillQuantity);
+      return await fulfillRechargeOrder(supabase, orderId, orderForFulfillment, apiKey, fulfillQuantity, tableName);
     }
   } catch (g2bulkError: any) {
     console.error('[Fulfill] G2Bulk processing error:', g2bulkError);
     await supabase
-      .from('topup_orders')
+      .from(tableName)
       .update({ 
         status: 'failed',
         status_message: `G2Bulk error: ${g2bulkError.message || 'Unknown error'}`
@@ -742,8 +744,9 @@ serve(async (req) => {
     
     // Handle fulfill action (called after payment confirmed)
     if (body.action === 'fulfill' && body.orderId) {
-      console.log('[Process-Topup] Fulfill action for order:', body.orderId);
-      const result = await fulfillG2BulkOrder(supabase, body.orderId);
+      const isPreorder = body.isPreorder === true;
+      console.log('[Process-Topup] Fulfill action for order:', body.orderId, 'isPreorder:', isPreorder);
+      const result = await fulfillG2BulkOrder(supabase, body.orderId, isPreorder ? 'preorder_orders' : 'topup_orders');
       return new Response(
         JSON.stringify(result),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -772,7 +775,8 @@ serve(async (req) => {
       payment_method,
       g2bulk_product_id,
       user_id,
-      is_preorder
+      is_preorder,
+      scheduled_fulfill_at
     } = body;
 
     console.log('[Process-Topup] Creating order:', { game_name, package_name, player_id, g2bulk_product_id, is_preorder });
@@ -795,7 +799,8 @@ serve(async (req) => {
         payment_method,
         g2bulk_product_id: g2bulk_product_id || null,
         user_id: user_id || null,
-        status: defaultStatus
+        status: defaultStatus,
+        ...(is_preorder && scheduled_fulfill_at ? { scheduled_fulfill_at } : {}),
       })
       .select()
       .single();

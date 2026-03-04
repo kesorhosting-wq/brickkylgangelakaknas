@@ -78,6 +78,7 @@ const CheckoutPage = () => {
           payment_method: "Kesor KHQR",
           g2bulk_product_id: firstItem.g2bulkProductId || null,
           is_preorder: isPreorder,
+          scheduled_fulfill_at: firstItem.scheduledFulfillAt || null,
         },
       });
 
