@@ -273,23 +273,13 @@ const PreorderOrdersTab: React.FC = () => {
                             Process on {new Date(order.scheduled_fulfill_at).toLocaleDateString()}
                           </Button>
                         )}
-                        {/* Manual process button for paid orders without scheduled time */}
-                        {order.status === 'paid' && order.g2bulk_product_id && !order.scheduled_fulfill_at && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => processOrder(order)}
-                            disabled={processingOrders[order.id]}
-                            className="border-gold/50 text-gold"
-                          >
-                            {processingOrders[order.id] ? (
-                              <RefreshCw className="w-3 h-3 animate-spin mr-1" />
-                            ) : (
-                              <Play className="w-3 h-3 mr-1" />
-                            )}
-                            Process Now
-                          </Button>
-                        )}
+                         {/* For paid orders without scheduled time, show waiting indicator */}
+                         {order.status === 'paid' && order.g2bulk_product_id && !order.scheduled_fulfill_at && (
+                           <Badge variant="outline" className="border-gold/50 text-gold">
+                             <Clock className="w-3 h-3 mr-1" />
+                             Awaiting Schedule
+                           </Badge>
+                         )}
 
                         {/* Status dropdown */}
                         <DropdownMenu>
