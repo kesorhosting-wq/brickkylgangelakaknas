@@ -1866,7 +1866,7 @@ const AdminPage: React.FC = () => {
                                     />
                                     <Input
                                       type="number"
-                                      placeholder="Qty (empty=unlimited)"
+                                      placeholder="Qty (empty=1x)"
                                       value={newPackage.quantity ?? ""}
                                       onChange={(e) =>
                                         setNewPackage((prev) => ({ ...prev, quantity: e.target.value ? Number(e.target.value) : null }))
@@ -2044,7 +2044,7 @@ const AdminPage: React.FC = () => {
                                             />
                                             <Input
                                               type="number"
-                                              placeholder="Qty (empty=unlimited)"
+                                              placeholder="Qty (empty=1x)"
                                               value={editPackageData.quantity ?? ""}
                                               onChange={(e) =>
                                                 setEditPackageData((prev) => ({
@@ -2164,7 +2164,7 @@ const AdminPage: React.FC = () => {
                                               />
                                             </div>
                                             <p className="text-xs text-muted-foreground">
-                                              {pkg.amount} units{pkg.label && ` • ${pkg.label}`}{pkg.quantity != null && ` • Qty: ${pkg.quantity}`}
+                                              {pkg.amount} units{pkg.label && ` • ${pkg.label}`} • Qty: {pkg.quantity ?? 1}x
                                             </p>
                                             <G2BulkProductSelector
                                               value={pkg.g2bulkProductId}
