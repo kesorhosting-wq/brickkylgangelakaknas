@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Settings, Receipt, User, Menu, LogOut, Home } from 'lucide-react';
+import { Settings, Receipt, User, Menu, LogOut, Home, CalendarDays, ShoppingBag } from 'lucide-react';
 import { useSite } from '@/contexts/SiteContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from '@/hooks/use-toast';
@@ -108,6 +108,33 @@ const Header: React.FC = () => {
           {/* Desktop Navigation */}
           <div className="hidden sm:flex items-center gap-2 sm:gap-3">
 
+            {/* Home */}
+            <Link 
+              to="/" 
+              className="p-2 rounded-lg border-2 border-gold/50 bg-card hover:bg-gold/20 transition-colors"
+              title="ទំព័រដើម"
+            >
+              <Home className="w-5 h-5 text-gold" />
+            </Link>
+
+            {/* Events */}
+            <Link 
+              to="/events" 
+              className="p-2 rounded-lg border-2 border-gold/50 bg-card hover:bg-gold/20 transition-colors"
+              title="ព្រឹត្តិការណ៍"
+            >
+              <CalendarDays className="w-5 h-5 text-gold" />
+            </Link>
+
+            {/* Preorder */}
+            <Link 
+              to="/preorder" 
+              className="p-2 rounded-lg border-2 border-gold/50 bg-card hover:bg-gold/20 transition-colors"
+              title="បញ្ជាទិញមុន"
+            >
+              <ShoppingBag className="w-5 h-5 text-gold" />
+            </Link>
+
             {/* Order History - only for logged in users */}
             {user && (
               <Link 
@@ -172,6 +199,20 @@ const Header: React.FC = () => {
                   <Link to="/" className="flex items-center gap-2 cursor-pointer">
                     <Home className="w-4 h-4" />
                     <span>ទំព័រដើម</span>
+                  </Link>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem asChild>
+                  <Link to="/events" className="flex items-center gap-2 cursor-pointer">
+                    <CalendarDays className="w-4 h-4" />
+                    <span>ព្រឹត្តិការណ៍</span>
+                  </Link>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem asChild>
+                  <Link to="/preorder" className="flex items-center gap-2 cursor-pointer">
+                    <ShoppingBag className="w-4 h-4" />
+                    <span>បញ្ជាទិញមុន</span>
                   </Link>
                 </DropdownMenuItem>
                 
