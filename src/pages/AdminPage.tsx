@@ -31,6 +31,8 @@ import {
   Type,
   Copy,
   Calendar,
+  Clock,
+  ShoppingBag,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -59,6 +61,8 @@ import DatabaseExportImport from "@/components/admin/DatabaseExportImport";
 import FontSettingsTab from "@/components/admin/FontSettingsTab";
 import { useG2BulkProductStatus } from "@/hooks/useG2BulkProductStatus";
 import EventsTab from "@/components/admin/EventsTab";
+import PreorderGamesTab from "@/components/admin/PreorderGamesTab";
+import PreorderOrdersTab from "@/components/admin/PreorderOrdersTab";
 
 const AdminPage: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -402,7 +406,7 @@ const AdminPage: React.FC = () => {
 
         <div className="container mx-auto px-4 py-6">
           <Tabs defaultValue="settings" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-11 bg-card border border-border">
+            <TabsList className="grid w-full grid-cols-13 bg-card border border-border">
               <TabsTrigger
                 value="settings"
                 className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
@@ -472,6 +476,20 @@ const AdminPage: React.FC = () => {
               >
                 <Calendar className="w-4 h-4 sm:mr-2" />
                 <span className="hidden sm:inline">Events</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="preorder-games"
+                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+              >
+                <Clock className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Pre-order</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="preorder-orders"
+                className="data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+              >
+                <ShoppingBag className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">PO Orders</span>
               </TabsTrigger>
               <TabsTrigger
                 value="backup"
@@ -2714,6 +2732,16 @@ const AdminPage: React.FC = () => {
             {/* Events */}
             <TabsContent value="events">
               <EventsTab />
+            </TabsContent>
+
+            {/* Pre-order Games */}
+            <TabsContent value="preorder-games">
+              <PreorderGamesTab />
+            </TabsContent>
+
+            {/* Pre-order Orders */}
+            <TabsContent value="preorder-orders">
+              <PreorderOrdersTab />
             </TabsContent>
 
             {/* Database Backup */}
