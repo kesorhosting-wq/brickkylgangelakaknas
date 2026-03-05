@@ -53,25 +53,27 @@ const G2BulkAutoImport: React.FC<G2BulkAutoImportProps> = ({
   const loadProducts = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('g2bulk_products')
         .select('*')
-        .eq('is_active', true)
-        .order('price', { ascending: true });
+        .eq('is_active', true);
+
+      // Filter server-side if we have a category
+      if (g2bulkCategoryId) {
+        query = query.eq('game_name', g2bulkCategoryId);
+      }
+
+      const { data, error } = await query
+        .order('price', { ascending: true })
+        .range(0, 4999);
 
       if (error) throw error;
 
       let filtered = data as G2BulkProduct[] || [];
 
-      // Filter by g2bulkCategoryId (which is game_name) if provided
-      if (g2bulkCategoryId) {
-        filtered = filtered.filter(p => 
-          p.game_name === g2bulkCategoryId || 
-          p.game_name.toLowerCase() === g2bulkCategoryId.toLowerCase()
-        );
-      } 
-      // Fallback to gameName matching
-      else if (gameName) {
+      // If we filtered server-side by category, no need to filter again
+      // Only do client-side name matching if no category was provided
+      if (!g2bulkCategoryId && gameName) {
         const matchedByName = filtered.filter(p => 
           p.game_name.toLowerCase().includes(gameName.toLowerCase()) ||
           gameName.toLowerCase().includes(p.game_name.toLowerCase())
@@ -80,8 +82,6 @@ const G2BulkAutoImport: React.FC<G2BulkAutoImportProps> = ({
           filtered = matchedByName;
         }
       }
-
-      // Filter out already imported products
       filtered = filtered.filter(p => !existingProductIds.includes(p.g2bulk_product_id));
 
       setProducts(filtered);
