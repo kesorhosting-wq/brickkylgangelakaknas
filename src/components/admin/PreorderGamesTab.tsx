@@ -511,9 +511,7 @@ const PreorderGamesTab: React.FC = () => {
                           gameId={pg.game_id}
                           gameName={pg.game_name || ''}
                           g2bulkCategoryId={pg.g2bulk_category_id}
-                          existingProductIds={packages
-                            .filter(p => p.g2bulk_product_id)
-                            .map(p => p.g2bulk_product_id!)}
+                          existingProductIds={[]}
                           onImport={async (products) => {
                             for (const product of products) {
                               await supabase.from('preorder_packages').insert({
