@@ -502,23 +502,32 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: str
     return { success: false, error: 'Order not found' };
   }
 
-  // GUARD: Prevent double-execution - only process if status is 'paid' or 'pending'
-  // If already processing/completed/failed, skip to prevent duplicate G2Bulk orders
+  // ATOMIC GUARD: Prevent double-execution by using conditional update.
+  // Only proceed if we can atomically change status from an allowed state to 'processing'.
+  // This prevents race conditions where two calls both see 'paid' before either updates.
   const allowedStatuses = ['paid', 'pending', 'notpaid'];
   if (!allowedStatuses.includes(order.status)) {
     console.log(`[Fulfill] Order already ${order.status}, skipping to prevent double-execution`);
     return { success: true, status: order.status, message: 'Already processed' };
   }
 
-  // IMMEDIATELY update to 'processing' to prevent double-execution and show user status
-  console.log(`[Fulfill] Updating order ${orderId} to processing status`);
-  await supabase
+  // Atomic update: only succeeds if status is still in allowed states
+  console.log(`[Fulfill] Attempting atomic lock for order ${orderId} (current status: ${order.status})`);
+  const { data: lockResult, error: lockError } = await supabase
     .from(tableName)
     .update({ 
       status: 'processing',
       status_message: 'Processing order with G2Bulk...'
     })
-    .eq('id', orderId);
+    .eq('id', orderId)
+    .in('status', allowedStatuses)
+    .select('id');
+
+  if (lockError || !lockResult || lockResult.length === 0) {
+    console.log(`[Fulfill] Could not lock order ${orderId} - another process already claimed it`);
+    return { success: true, status: 'processing', message: 'Already being processed by another call' };
+  }
+  console.log(`[Fulfill] Successfully locked order ${orderId} for processing`);
 
   console.log(`[Fulfill] Order found:`, JSON.stringify({
     id: order.id,
@@ -603,43 +612,61 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: str
     let fulfillQuantity = 1;
     let quantitySource = 'default';
     
-    const { data: pkg } = await supabase
+    // PRIORITY 1: Match by BOTH g2bulk_product_id AND package name for accuracy
+    // Using .eq on both columns avoids ambiguity when multiple packages share same g2bulk_product_id
+    const { data: pkgExact } = await supabase
       .from('packages')
       .select('quantity')
       .eq('g2bulk_product_id', g2bulkProductIdFinal)
+      .eq('name', order.package_name)
       .maybeSingle();
     
-    if (pkg?.quantity && pkg.quantity > 1) {
-      fulfillQuantity = pkg.quantity;
-      quantitySource = 'packages';
+    if (pkgExact?.quantity && pkgExact.quantity > 0) {
+      fulfillQuantity = pkgExact.quantity;
+      quantitySource = 'packages(exact)';
     } else {
-      // Also check special_packages
-      const { data: spkg } = await supabase
-        .from('special_packages')
+      // PRIORITY 2: Match only by g2bulk_product_id but limit to first result
+      const { data: pkgAny } = await supabase
+        .from('packages')
         .select('quantity')
         .eq('g2bulk_product_id', g2bulkProductIdFinal)
+        .limit(1)
         .maybeSingle();
       
-      if (spkg?.quantity && spkg.quantity > 1) {
-        fulfillQuantity = spkg.quantity;
-        quantitySource = 'special_packages';
+      if (pkgAny?.quantity && pkgAny.quantity > 0) {
+        fulfillQuantity = pkgAny.quantity;
+        quantitySource = 'packages(first)';
       } else {
-        // Also check preorder_packages
-        const { data: ppkg } = await supabase
-          .from('preorder_packages')
+        // Check special_packages
+        const { data: spkg } = await supabase
+          .from('special_packages')
           .select('quantity')
           .eq('g2bulk_product_id', g2bulkProductIdFinal)
+          .eq('name', order.package_name)
           .maybeSingle();
         
-        if (ppkg?.quantity && ppkg.quantity > 1) {
-          fulfillQuantity = ppkg.quantity;
-          quantitySource = 'preorder_packages';
+        if (spkg?.quantity && spkg.quantity > 0) {
+          fulfillQuantity = spkg.quantity;
+          quantitySource = 'special_packages';
         } else {
-          // Final fallback: parse quantity from order package name (e.g. "Weekly x2")
-          const nameQuantity = extractQuantityFromPackageName(order.package_name);
-          if (nameQuantity && nameQuantity > 1) {
-            fulfillQuantity = nameQuantity;
-            quantitySource = 'package_name';
+          // Check preorder_packages
+          const { data: ppkg } = await supabase
+            .from('preorder_packages')
+            .select('quantity')
+            .eq('g2bulk_product_id', g2bulkProductIdFinal)
+            .eq('name', order.package_name)
+            .maybeSingle();
+          
+          if (ppkg?.quantity && ppkg.quantity > 0) {
+            fulfillQuantity = ppkg.quantity;
+            quantitySource = 'preorder_packages';
+          } else {
+            // Final fallback: parse quantity from order package name (e.g. "Weekly x2")
+            const nameQuantity = extractQuantityFromPackageName(order.package_name);
+            if (nameQuantity && nameQuantity > 1) {
+              fulfillQuantity = nameQuantity;
+              quantitySource = 'package_name';
+            }
           }
         }
       }
@@ -647,11 +674,10 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: str
 
     console.log(`[Fulfill] Package quantity: ${fulfillQuantity} (source: ${quantitySource})`);
 
-    // Update order to processing
+    // Update status message with quantity info (status already set to 'processing' by atomic lock)
     await supabase
       .from(tableName)
       .update({ 
-        status: 'processing',
         status_message: `Sending to G2Bulk for fulfillment (×${fulfillQuantity})...`
       })
       .eq('id', orderId);
