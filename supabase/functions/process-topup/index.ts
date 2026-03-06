@@ -612,43 +612,61 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: str
     let fulfillQuantity = 1;
     let quantitySource = 'default';
     
-    const { data: pkg } = await supabase
+    // PRIORITY 1: Match by BOTH g2bulk_product_id AND package name for accuracy
+    // Using .eq on both columns avoids ambiguity when multiple packages share same g2bulk_product_id
+    const { data: pkgExact } = await supabase
       .from('packages')
       .select('quantity')
       .eq('g2bulk_product_id', g2bulkProductIdFinal)
+      .eq('name', order.package_name)
       .maybeSingle();
     
-    if (pkg?.quantity && pkg.quantity > 1) {
-      fulfillQuantity = pkg.quantity;
-      quantitySource = 'packages';
+    if (pkgExact?.quantity && pkgExact.quantity > 0) {
+      fulfillQuantity = pkgExact.quantity;
+      quantitySource = 'packages(exact)';
     } else {
-      // Also check special_packages
-      const { data: spkg } = await supabase
-        .from('special_packages')
+      // PRIORITY 2: Match only by g2bulk_product_id but limit to first result
+      const { data: pkgAny } = await supabase
+        .from('packages')
         .select('quantity')
         .eq('g2bulk_product_id', g2bulkProductIdFinal)
+        .limit(1)
         .maybeSingle();
       
-      if (spkg?.quantity && spkg.quantity > 1) {
-        fulfillQuantity = spkg.quantity;
-        quantitySource = 'special_packages';
+      if (pkgAny?.quantity && pkgAny.quantity > 0) {
+        fulfillQuantity = pkgAny.quantity;
+        quantitySource = 'packages(first)';
       } else {
-        // Also check preorder_packages
-        const { data: ppkg } = await supabase
-          .from('preorder_packages')
+        // Check special_packages
+        const { data: spkg } = await supabase
+          .from('special_packages')
           .select('quantity')
           .eq('g2bulk_product_id', g2bulkProductIdFinal)
+          .eq('name', order.package_name)
           .maybeSingle();
         
-        if (ppkg?.quantity && ppkg.quantity > 1) {
-          fulfillQuantity = ppkg.quantity;
-          quantitySource = 'preorder_packages';
+        if (spkg?.quantity && spkg.quantity > 0) {
+          fulfillQuantity = spkg.quantity;
+          quantitySource = 'special_packages';
         } else {
-          // Final fallback: parse quantity from order package name (e.g. "Weekly x2")
-          const nameQuantity = extractQuantityFromPackageName(order.package_name);
-          if (nameQuantity && nameQuantity > 1) {
-            fulfillQuantity = nameQuantity;
-            quantitySource = 'package_name';
+          // Check preorder_packages
+          const { data: ppkg } = await supabase
+            .from('preorder_packages')
+            .select('quantity')
+            .eq('g2bulk_product_id', g2bulkProductIdFinal)
+            .eq('name', order.package_name)
+            .maybeSingle();
+          
+          if (ppkg?.quantity && ppkg.quantity > 0) {
+            fulfillQuantity = ppkg.quantity;
+            quantitySource = 'preorder_packages';
+          } else {
+            // Final fallback: parse quantity from order package name (e.g. "Weekly x2")
+            const nameQuantity = extractQuantityFromPackageName(order.package_name);
+            if (nameQuantity && nameQuantity > 1) {
+              fulfillQuantity = nameQuantity;
+              quantitySource = 'package_name';
+            }
           }
         }
       }
