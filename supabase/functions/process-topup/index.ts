@@ -502,23 +502,32 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: str
     return { success: false, error: 'Order not found' };
   }
 
-  // GUARD: Prevent double-execution - only process if status is 'paid' or 'pending'
-  // If already processing/completed/failed, skip to prevent duplicate G2Bulk orders
+  // ATOMIC GUARD: Prevent double-execution by using conditional update.
+  // Only proceed if we can atomically change status from an allowed state to 'processing'.
+  // This prevents race conditions where two calls both see 'paid' before either updates.
   const allowedStatuses = ['paid', 'pending', 'notpaid'];
   if (!allowedStatuses.includes(order.status)) {
     console.log(`[Fulfill] Order already ${order.status}, skipping to prevent double-execution`);
     return { success: true, status: order.status, message: 'Already processed' };
   }
 
-  // IMMEDIATELY update to 'processing' to prevent double-execution and show user status
-  console.log(`[Fulfill] Updating order ${orderId} to processing status`);
-  await supabase
+  // Atomic update: only succeeds if status is still in allowed states
+  console.log(`[Fulfill] Attempting atomic lock for order ${orderId} (current status: ${order.status})`);
+  const { data: lockResult, error: lockError } = await supabase
     .from(tableName)
     .update({ 
       status: 'processing',
       status_message: 'Processing order with G2Bulk...'
     })
-    .eq('id', orderId);
+    .eq('id', orderId)
+    .in('status', allowedStatuses)
+    .select('id');
+
+  if (lockError || !lockResult || lockResult.length === 0) {
+    console.log(`[Fulfill] Could not lock order ${orderId} - another process already claimed it`);
+    return { success: true, status: 'processing', message: 'Already being processed by another call' };
+  }
+  console.log(`[Fulfill] Successfully locked order ${orderId} for processing`);
 
   console.log(`[Fulfill] Order found:`, JSON.stringify({
     id: order.id,
