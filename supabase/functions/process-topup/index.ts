@@ -674,11 +674,10 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: str
 
     console.log(`[Fulfill] Package quantity: ${fulfillQuantity} (source: ${quantitySource})`);
 
-    // Update order to processing
+    // Update status message with quantity info (status already set to 'processing' by atomic lock)
     await supabase
       .from(tableName)
       .update({ 
-        status: 'processing',
         status_message: `Sending to G2Bulk for fulfillment (×${fulfillQuantity})...`
       })
       .eq('id', orderId);
