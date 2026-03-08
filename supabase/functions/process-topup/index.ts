@@ -608,68 +608,77 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: str
   const apiKey = apiConfig.api_secret;
 
   try {
-    // Look up the package quantity (how many times to trigger G2Bulk)
+    // Resolve fulfillment quantity deterministically from package tables.
+    // Key match order: game_name + package_name + g2bulk_product_id + amount (price).
+    // If quantity is null/invalid, default to 1.
     let fulfillQuantity = 1;
-    let quantitySource = 'default';
-    
-    // PRIORITY 1: Match by BOTH g2bulk_product_id AND package name for accuracy
-    // Using .eq on both columns avoids ambiguity when multiple packages share same g2bulk_product_id
-    const { data: pkgExact } = await supabase
-      .from('packages')
-      .select('quantity')
-      .eq('g2bulk_product_id', g2bulkProductIdFinal)
-      .eq('name', order.package_name)
-      .maybeSingle();
-    
-    if (pkgExact?.quantity && pkgExact.quantity > 0) {
-      fulfillQuantity = pkgExact.quantity;
-      quantitySource = 'packages(exact)';
-    } else {
-      // PRIORITY 2: Match only by g2bulk_product_id but limit to first result
-      const { data: pkgAny } = await supabase
-        .from('packages')
-        .select('quantity')
+    let quantitySource = 'default(1)';
+
+    const targetAmount = Number(order.amount ?? 0);
+    const amountTolerance = 0.0001;
+
+    const resolveQuantityFromTable = async (table: 'packages' | 'special_packages' | 'preorder_packages') => {
+      const baseQuery = supabase
+        .from(table)
+        .select('quantity, price, updated_at, games!inner(name)')
         .eq('g2bulk_product_id', g2bulkProductIdFinal)
-        .limit(1)
-        .maybeSingle();
-      
-      if (pkgAny?.quantity && pkgAny.quantity > 0) {
-        fulfillQuantity = pkgAny.quantity;
-        quantitySource = 'packages(first)';
-      } else {
-        // Check special_packages
-        const { data: spkg } = await supabase
-          .from('special_packages')
-          .select('quantity')
-          .eq('g2bulk_product_id', g2bulkProductIdFinal)
-          .eq('name', order.package_name)
-          .maybeSingle();
-        
-        if (spkg?.quantity && spkg.quantity > 0) {
-          fulfillQuantity = spkg.quantity;
-          quantitySource = 'special_packages';
-        } else {
-          // Check preorder_packages
-          const { data: ppkg } = await supabase
-            .from('preorder_packages')
-            .select('quantity')
-            .eq('g2bulk_product_id', g2bulkProductIdFinal)
-            .eq('name', order.package_name)
-            .maybeSingle();
-          
-          if (ppkg?.quantity && ppkg.quantity > 0) {
-            fulfillQuantity = ppkg.quantity;
-            quantitySource = 'preorder_packages';
-          } else {
-            // Final fallback: parse quantity from order package name (e.g. "Weekly x2")
-            const nameQuantity = extractQuantityFromPackageName(order.package_name);
-            if (nameQuantity && nameQuantity > 1) {
-              fulfillQuantity = nameQuantity;
-              quantitySource = 'package_name';
-            }
-          }
-        }
+        .eq('name', order.package_name)
+        .eq('games.name', order.game_name)
+        .order('updated_at', { ascending: false })
+        .limit(20);
+
+      const { data: rows, error } = await baseQuery;
+      if (error) {
+        console.warn(`[Fulfill] Quantity lookup error on ${table}:`, error.message);
+        return null;
       }
+
+      if (!rows || rows.length === 0) {
+        return null;
+      }
+
+      // Prefer same-price row to distinguish x1/x2/x3 variants with same name/product.
+      const priceMatched = rows.find((r: any) => {
+        const rowPrice = Number(r?.price ?? NaN);
+        return Number.isFinite(rowPrice) && Math.abs(rowPrice - targetAmount) <= amountTolerance;
+      });
+
+      const selected = priceMatched ?? rows[0];
+      const normalizedQty = Number(selected?.quantity);
+      const quantity = Number.isFinite(normalizedQty) && normalizedQty > 0
+        ? Math.floor(normalizedQty)
+        : 1;
+
+      // Helpful warning when data is ambiguous (same keys, different quantities).
+      const distinctQuantities = new Set(
+        rows.map((r: any) => {
+          const q = Number(r?.quantity);
+          return Number.isFinite(q) && q > 0 ? Math.floor(q) : 1;
+        })
+      );
+      if (distinctQuantities.size > 1) {
+        console.warn(
+          `[Fulfill] Ambiguous quantity rows in ${table} for game='${order.game_name}', package='${order.package_name}', product='${g2bulkProductIdFinal}'. ` +
+          `Resolved by ${priceMatched ? 'price match' : 'latest row'} => qty=${quantity}.`
+        );
+      }
+
+      return {
+        quantity,
+        source: `${table}${priceMatched ? '(price_match)' : '(latest_row)'}`,
+      };
+    };
+
+    const fromPackages = await resolveQuantityFromTable('packages');
+    const fromSpecial = fromPackages ? null : await resolveQuantityFromTable('special_packages');
+    const fromPreorder = (!fromPackages && !fromSpecial)
+      ? await resolveQuantityFromTable('preorder_packages')
+      : null;
+
+    const resolved = fromPackages ?? fromSpecial ?? fromPreorder;
+    if (resolved) {
+      fulfillQuantity = resolved.quantity;
+      quantitySource = resolved.source;
     }
 
     console.log(`[Fulfill] Package quantity: ${fulfillQuantity} (source: ${quantitySource})`);
