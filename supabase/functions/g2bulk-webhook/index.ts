@@ -125,9 +125,14 @@ serve(async (req) => {
     });
 
     // Extract our internal order ID from remark if present
+    // Supports both formats:
+    // - order_id:<uuid>
+    // - order_id:<uuid>_1of2
     let internalOrderId = '';
     if (remark.startsWith('order_id:')) {
-      internalOrderId = remark.replace('order_id:', '');
+      const raw = remark.replace('order_id:', '').trim();
+      const match = raw.match(/^([0-9a-fA-F-]{36})(?:_\d+of\d+)?$/);
+      internalOrderId = match?.[1] || raw;
     }
 
     // Find the order in our database
@@ -187,11 +192,21 @@ serve(async (req) => {
         break;
     }
 
-    // Update order status
+    const existingOrderIds = String(order.g2bulk_order_id || '')
+      .split(',')
+      .map((id: string) => id.trim())
+      .filter(Boolean);
+
+    if (g2bulkOrderId && !existingOrderIds.includes(g2bulkOrderId)) {
+      existingOrderIds.push(g2bulkOrderId);
+    }
+
+    const mergedG2BulkOrderIds = existingOrderIds.join(',');
+
     const updateData: Record<string, unknown> = {
       status: newStatus,
       status_message: statusMessage,
-      g2bulk_order_id: g2bulkOrderId || order.g2bulk_order_id
+      g2bulk_order_id: mergedG2BulkOrderIds || order.g2bulk_order_id || g2bulkOrderId || null,
     };
 
     if (cardCodesJson) {

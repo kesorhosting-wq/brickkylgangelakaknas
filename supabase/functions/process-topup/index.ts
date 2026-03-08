@@ -618,16 +618,15 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: str
     const amountTolerance = 0.0001;
 
     const resolveQuantityFromTable = async (table: 'packages' | 'special_packages' | 'preorder_packages') => {
-      const baseQuery = supabase
+      const { data: rows, error } = await supabase
         .from(table)
-        .select('quantity, price, updated_at, games!inner(name)')
+        .select('quantity, price, amount, updated_at, games!inner(name)')
         .eq('g2bulk_product_id', g2bulkProductIdFinal)
         .eq('name', order.package_name)
         .eq('games.name', order.game_name)
         .order('updated_at', { ascending: false })
         .limit(20);
 
-      const { data: rows, error } = await baseQuery;
       if (error) {
         console.warn(`[Fulfill] Quantity lookup error on ${table}:`, error.message);
         return null;
@@ -637,35 +636,63 @@ async function fulfillG2BulkOrder(supabase: any, orderId: string, tableName: str
         return null;
       }
 
-      // Prefer same-price row to distinguish x1/x2/x3 variants with same name/product.
-      const priceMatched = rows.find((r: any) => {
-        const rowPrice = Number(r?.price ?? NaN);
-        return Number.isFinite(rowPrice) && Math.abs(rowPrice - targetAmount) <= amountTolerance;
+      const normalizedRows = rows.map((r: any) => {
+        const parsedQty = Number(r?.quantity);
+        const normalizedQty = Number.isFinite(parsedQty) && parsedQty > 0 ? Math.floor(parsedQty) : 1;
+        const parsedPrice = Number(r?.price);
+        const normalizedPrice = Number.isFinite(parsedPrice) ? parsedPrice : null;
+        const diff = Number.isFinite(targetAmount) && normalizedPrice !== null
+          ? Math.abs(normalizedPrice - targetAmount)
+          : null;
+
+        return {
+          quantity: normalizedQty,
+          price: normalizedPrice,
+          amountLabel: String(r?.amount ?? ''),
+          updated_at: String(r?.updated_at ?? ''),
+          diff,
+        };
       });
 
-      const selected = priceMatched ?? rows[0];
-      const normalizedQty = Number(selected?.quantity);
-      const quantity = Number.isFinite(normalizedQty) && normalizedQty > 0
-        ? Math.floor(normalizedQty)
-        : 1;
+      const distinctQuantities = new Set(normalizedRows.map((r: any) => r.quantity));
 
-      // Helpful warning when data is ambiguous (same keys, different quantities).
-      const distinctQuantities = new Set(
-        rows.map((r: any) => {
-          const q = Number(r?.quantity);
-          return Number.isFinite(q) && q > 0 ? Math.floor(q) : 1;
-        })
-      );
-      if (distinctQuantities.size > 1) {
-        console.warn(
-          `[Fulfill] Ambiguous quantity rows in ${table} for game='${order.game_name}', package='${order.package_name}', product='${g2bulkProductIdFinal}'. ` +
-          `Resolved by ${priceMatched ? 'price match' : 'latest row'} => qty=${quantity}.`
-        );
+      // 1) Strong match: exact/near-exact price match
+      const exactPriceMatch = normalizedRows.find((r: any) => r.diff !== null && r.diff <= amountTolerance);
+      if (exactPriceMatch) {
+        return {
+          quantity: exactPriceMatch.quantity,
+          source: `${table}(price_exact)`
+        };
       }
 
+      // 2) Soft match: nearest price if unambiguous enough (handles rounding deltas)
+      const nearestByPrice = normalizedRows
+        .filter((r: any) => r.diff !== null)
+        .sort((a: any, b: any) => (a.diff as number) - (b.diff as number))[0];
+
+      if (nearestByPrice && (nearestByPrice.diff as number) <= 0.02) {
+        return {
+          quantity: nearestByPrice.quantity,
+          source: `${table}(price_nearest)`
+        };
+      }
+
+      // 3) If rows are ambiguous and no price confidence, fail-safe to qty=1 (prevents over-charge)
+      if (distinctQuantities.size > 1) {
+        console.warn(
+          `[Fulfill] Ambiguous quantity rows in ${table} for game='${order.game_name}', package='${order.package_name}', product='${g2bulkProductIdFinal}', amount='${order.amount}'. ` +
+          `No confident price match; fail-safe qty=1.`
+        );
+        return {
+          quantity: 1,
+          source: `${table}(ambiguous_default_1)`
+        };
+      }
+
+      // 4) Non-ambiguous rows: use the only known quantity
       return {
-        quantity,
-        source: `${table}${priceMatched ? '(price_match)' : '(latest_row)'}`,
+        quantity: normalizedRows[0].quantity,
+        source: `${table}(single_quantity_group)`
       };
     };
 
