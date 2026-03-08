@@ -125,9 +125,14 @@ serve(async (req) => {
     });
 
     // Extract our internal order ID from remark if present
+    // Supports both formats:
+    // - order_id:<uuid>
+    // - order_id:<uuid>_1of2
     let internalOrderId = '';
     if (remark.startsWith('order_id:')) {
-      internalOrderId = remark.replace('order_id:', '');
+      const raw = remark.replace('order_id:', '').trim();
+      const match = raw.match(/^([0-9a-fA-F-]{36})(?:_\d+of\d+)?$/);
+      internalOrderId = match?.[1] || raw;
     }
 
     // Find the order in our database
