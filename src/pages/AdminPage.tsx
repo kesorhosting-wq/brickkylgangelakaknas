@@ -2768,6 +2768,11 @@ const AdminPage: React.FC = () => {
               <SalesActivityTab />
             </TabsContent>
 
+            {/* Price Update */}
+            <TabsContent value="price-update">
+              <PriceUpdateTab />
+            </TabsContent>
+
             {/* Database Backup */}
             <TabsContent value="backup">
               <DatabaseExportImport />
