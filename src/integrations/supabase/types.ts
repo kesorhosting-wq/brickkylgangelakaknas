@@ -224,6 +224,7 @@ export type Database = {
           label_text_color: string | null
           name: string
           price: number
+          price_markup_percent: number | null
           quantity: number | null
           sort_order: number | null
           updated_at: string
@@ -242,6 +243,7 @@ export type Database = {
           label_text_color?: string | null
           name: string
           price: number
+          price_markup_percent?: number | null
           quantity?: number | null
           sort_order?: number | null
           updated_at?: string
@@ -260,6 +262,7 @@ export type Database = {
           label_text_color?: string | null
           name?: string
           price?: number
+          price_markup_percent?: number | null
           quantity?: number | null
           sort_order?: number | null
           updated_at?: string
@@ -456,6 +459,7 @@ export type Database = {
           label_text_color: string | null
           name: string
           price: number
+          price_markup_percent: number | null
           quantity: number | null
           scheduled_fulfill_at: string | null
           sort_order: number | null
@@ -475,6 +479,7 @@ export type Database = {
           label_text_color?: string | null
           name: string
           price: number
+          price_markup_percent?: number | null
           quantity?: number | null
           scheduled_fulfill_at?: string | null
           sort_order?: number | null
@@ -494,6 +499,7 @@ export type Database = {
           label_text_color?: string | null
           name?: string
           price?: number
+          price_markup_percent?: number | null
           quantity?: number | null
           scheduled_fulfill_at?: string | null
           sort_order?: number | null
@@ -578,6 +584,7 @@ export type Database = {
           label_text_color: string | null
           name: string
           price: number
+          price_markup_percent: number | null
           quantity: number | null
           sort_order: number | null
           updated_at: string
@@ -596,6 +603,7 @@ export type Database = {
           label_text_color?: string | null
           name: string
           price: number
+          price_markup_percent?: number | null
           quantity?: number | null
           sort_order?: number | null
           updated_at?: string
@@ -614,6 +622,7 @@ export type Database = {
           label_text_color?: string | null
           name?: string
           price?: number
+          price_markup_percent?: number | null
           quantity?: number | null
           sort_order?: number | null
           updated_at?: string

@@ -65,6 +65,7 @@ import EventsTab from "@/components/admin/EventsTab";
 import PreorderGamesTab from "@/components/admin/PreorderGamesTab";
 import PreorderOrdersTab from "@/components/admin/PreorderOrdersTab";
 import SalesActivityTab from "@/components/admin/SalesActivityTab";
+import PriceUpdateTab from "@/components/admin/PriceUpdateTab";
 
 const AdminPage: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -499,6 +500,13 @@ const AdminPage: React.FC = () => {
               >
                 <BarChart3 className="w-4 h-4 mr-2 shrink-0" />
                 <span>Sales</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="price-update"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+              >
+                <DollarSign className="w-4 h-4 mr-2 shrink-0" />
+                <span>Prices</span>
               </TabsTrigger>
               <TabsTrigger
                 value="backup"
@@ -2758,6 +2766,11 @@ const AdminPage: React.FC = () => {
             {/* Sales Activity */}
             <TabsContent value="sales-activity">
               <SalesActivityTab />
+            </TabsContent>
+
+            {/* Price Update */}
+            <TabsContent value="price-update">
+              <PriceUpdateTab />
             </TabsContent>
 
             {/* Database Backup */}
