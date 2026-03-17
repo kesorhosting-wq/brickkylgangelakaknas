@@ -65,6 +65,7 @@ import EventsTab from "@/components/admin/EventsTab";
 import PreorderGamesTab from "@/components/admin/PreorderGamesTab";
 import PreorderOrdersTab from "@/components/admin/PreorderOrdersTab";
 import SalesActivityTab from "@/components/admin/SalesActivityTab";
+import PriceUpdateTab from "@/components/admin/PriceUpdateTab";
 
 const AdminPage: React.FC = () => {
   const { user, signOut } = useAuth();
