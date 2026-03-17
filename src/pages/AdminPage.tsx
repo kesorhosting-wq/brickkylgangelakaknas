@@ -63,6 +63,7 @@ import { useG2BulkProductStatus } from "@/hooks/useG2BulkProductStatus";
 import EventsTab from "@/components/admin/EventsTab";
 import PreorderGamesTab from "@/components/admin/PreorderGamesTab";
 import PreorderOrdersTab from "@/components/admin/PreorderOrdersTab";
+import SalesActivityTab from "@/components/admin/SalesActivityTab";
 
 const AdminPage: React.FC = () => {
   const { user, signOut } = useAuth();
