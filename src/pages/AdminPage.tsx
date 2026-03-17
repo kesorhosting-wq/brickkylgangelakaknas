@@ -502,6 +502,13 @@ const AdminPage: React.FC = () => {
                 <span>Sales</span>
               </TabsTrigger>
               <TabsTrigger
+                value="price-update"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+              >
+                <DollarSign className="w-4 h-4 mr-2 shrink-0" />
+                <span>Prices</span>
+              </TabsTrigger>
+              <TabsTrigger
                 value="backup"
                 className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
               >
