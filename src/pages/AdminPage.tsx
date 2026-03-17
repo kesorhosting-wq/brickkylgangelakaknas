@@ -33,6 +33,7 @@ import {
   Calendar,
   Clock,
   ShoppingBag,
+  BarChart3,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ import { useG2BulkProductStatus } from "@/hooks/useG2BulkProductStatus";
 import EventsTab from "@/components/admin/EventsTab";
 import PreorderGamesTab from "@/components/admin/PreorderGamesTab";
 import PreorderOrdersTab from "@/components/admin/PreorderOrdersTab";
+import SalesActivityTab from "@/components/admin/SalesActivityTab";
 
 const AdminPage: React.FC = () => {
   const { user, signOut } = useAuth();
@@ -490,6 +492,13 @@ const AdminPage: React.FC = () => {
               >
                 <ShoppingBag className="w-4 h-4 mr-2 shrink-0" />
                 <span>PO Orders</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="sales-activity"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+              >
+                <BarChart3 className="w-4 h-4 mr-2 shrink-0" />
+                <span>Sales</span>
               </TabsTrigger>
               <TabsTrigger
                 value="backup"
@@ -2744,6 +2753,11 @@ const AdminPage: React.FC = () => {
             {/* Pre-order Orders */}
             <TabsContent value="preorder-orders">
               <div><PreorderOrdersTab /></div>
+            </TabsContent>
+
+            {/* Sales Activity */}
+            <TabsContent value="sales-activity">
+              <SalesActivityTab />
             </TabsContent>
 
             {/* Database Backup */}
