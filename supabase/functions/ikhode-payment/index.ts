@@ -127,6 +127,7 @@ serve(async (req) => {
             callbackUrl,
             secret: webhookSecret,
             merchantName,
+            merchantId,
           }),
         });
 

@@ -370,7 +370,8 @@ const KesorSettingsTab: React.FC = () => {
   "username": "Customer Name",
   "callbackUrl": "${webhookUrl}/{order_id}",
   "secret": "your_webhook_secret",
-  "merchantName": "${config.merchant_name || 'Kesor'}"
+  "merchantName": "${config.merchant_name || 'Kesor'}",
+  "merchantId": "${config.merchant_id || ''}"
 }`}
           </pre>
         </div>
