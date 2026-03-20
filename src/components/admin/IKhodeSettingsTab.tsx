@@ -213,6 +213,23 @@ const IKhodeSettingsTab: React.FC = () => {
           </p>
         </div>
 
+        {/* Merchant Name */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Server className="w-4 h-4" />
+            Merchant Name
+          </Label>
+          <Input
+            value={config.merchant_name}
+            onChange={(e) => setConfig({ ...config, merchant_name: e.target.value })}
+            placeholder="e.g., Kesor"
+            className="border-gold/50"
+          />
+          <p className="text-xs text-muted-foreground">
+            Name shown on the KHQR payment (sent as merchantName in generate-khqr)
+          </p>
+        </div>
+
         {/* Save Button */}
         <Button 
           onClick={handleSave} 

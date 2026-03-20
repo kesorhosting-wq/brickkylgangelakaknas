@@ -124,6 +124,7 @@ serve(async (req) => {
             gameName: gameName || "",
             callbackUrl,
             secret: webhookSecret,
+            merchantName,
           }),
         });
 
