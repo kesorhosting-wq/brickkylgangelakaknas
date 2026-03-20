@@ -277,6 +277,24 @@ const KesorSettingsTab: React.FC = () => {
             Name shown on the KHQR payment (sent as merchantName in generate-khqr request)
           </p>
         </div>
+
+        {/* Merchant ID */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Key className="w-4 h-4" />
+            Merchant ID
+          </Label>
+          <Input
+            value={config.merchant_id || ''}
+            onChange={(e) => setConfig({ ...config, merchant_id: e.target.value })}
+            placeholder="e.g., kesor@wing"
+            className="border-gold/50"
+          />
+          <p className="text-xs text-muted-foreground">
+            Merchant ID for KHQR payment (sent as merchantId in generate-khqr request)
+          </p>
+        </div>
+
         {/* Action Buttons */}
         <div className="flex gap-3">
           <Button 
