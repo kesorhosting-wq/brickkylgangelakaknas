@@ -70,6 +70,7 @@ serve(async (req) => {
       webhook_secret: string;
       custom_webhook_url?: string;
       merchant_name?: string;
+      merchant_id?: string;
     };
 
     const apiUrl = config.node_api_url?.replace(/\/$/, "");
@@ -77,6 +78,7 @@ serve(async (req) => {
     const webhookSecret = config.webhook_secret || "";
     const customWebhookUrl = config.custom_webhook_url || "";
     const merchantName = config.merchant_name || "Kesor";
+    const merchantId = config.merchant_id || "";
 
     if (!apiUrl) {
       return new Response(
