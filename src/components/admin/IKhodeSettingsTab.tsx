@@ -13,6 +13,7 @@ interface IKhodeConfig {
   websocket_url: string;
   webhook_secret: string;
   custom_webhook_url: string;
+  merchant_name: string;
 }
 
 interface GatewayData {
@@ -27,7 +28,8 @@ const defaultConfig: IKhodeConfig = {
   node_api_url: '',
   websocket_url: '',
   webhook_secret: '',
-  custom_webhook_url: ''
+  custom_webhook_url: '',
+  merchant_name: 'Kesor'
 };
 
 const IKhodeSettingsTab: React.FC = () => {
@@ -208,6 +210,23 @@ const IKhodeSettingsTab: React.FC = () => {
           />
           <p className="text-xs text-muted-foreground">
             Override default webhook. Use {'{order_id}'} as placeholder.
+          </p>
+        </div>
+
+        {/* Merchant Name */}
+        <div className="space-y-2">
+          <Label className="flex items-center gap-2">
+            <Server className="w-4 h-4" />
+            Merchant Name
+          </Label>
+          <Input
+            value={config.merchant_name}
+            onChange={(e) => setConfig({ ...config, merchant_name: e.target.value })}
+            placeholder="e.g., Kesor"
+            className="border-gold/50"
+          />
+          <p className="text-xs text-muted-foreground">
+            Name shown on the KHQR payment (sent as merchantName in generate-khqr)
           </p>
         </div>
 
