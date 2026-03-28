@@ -130,12 +130,61 @@ serve(async (req) => {
     }
 
     if (action === "purchase") {
-      // Validate amount
-      if (!amount || typeof amount !== 'number' || amount <= 0 || amount > 10000) {
+      if (!orderId || typeof orderId !== 'string') {
         return new Response(
-          JSON.stringify({ error: "Invalid amount. Must be between 0 and 10,000" }),
+          JSON.stringify({ error: "orderId is required for wallet purchase" }),
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
+      }
+
+      const { data: order, error: orderError } = await supabase
+        .from("topup_orders")
+        .select("id, user_id, amount, status")
+        .eq("id", orderId)
+        .maybeSingle();
+
+      if (orderError) {
+        log('ERROR', 'Failed to load order for wallet purchase', { orderId, error: orderError.message });
+        return new Response(
+          JSON.stringify({ error: "Failed to validate order" }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (!order) {
+        return new Response(
+          JSON.stringify({ error: "Order not found" }),
+          { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (order.user_id && order.user_id !== user.id) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized order access" }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (order.status !== "pending") {
+        return new Response(
+          JSON.stringify({ error: `Order is not payable (status: ${order.status})` }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const authoritativeAmount = Number(order.amount);
+      if (!Number.isFinite(authoritativeAmount) || authoritativeAmount <= 0 || authoritativeAmount > 10000) {
+        return new Response(
+          JSON.stringify({ error: "Invalid order amount" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      const payloadAmount = Number(amount);
+      if (Number.isFinite(payloadAmount) && Math.abs(payloadAmount - authoritativeAmount) > 0.0001) {
+        log('WARN', 'Suspicious wallet purchase amount mismatch', {
+          orderId,
+          payloadAmount,
+          authoritativeAmount,
+          userId: user.id,
+        });
       }
 
       // Use atomic transaction function to prevent race conditions
@@ -143,7 +192,7 @@ serve(async (req) => {
       const { data: result, error: rpcError } = await supabase.rpc('process_wallet_transaction', {
         _user_id: user.id,
         _type: 'purchase',
-        _amount: -amount, // Negative for deduction
+        _amount: -authoritativeAmount, // Negative for deduction
         _description: 'Game top-up purchase',
         _reference_id: orderId || null
       });
@@ -173,7 +222,7 @@ serve(async (req) => {
 
       log('INFO', 'Wallet purchase successful', { 
         userId: user.id, 
-        amount, 
+        amount: authoritativeAmount, 
         newBalance: result.new_balance,
         transactionId: result.transaction_id 
       });
