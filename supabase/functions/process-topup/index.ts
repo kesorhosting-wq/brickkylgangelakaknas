@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { resolveAuthoritativePackage } from "../_shared/orderPricing.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -839,6 +840,10 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
+  const authHeader = req.headers.get('Authorization');
+  const userClient = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY')!, {
+    global: authHeader ? { headers: { Authorization: authHeader } } : undefined,
+  });
 
   try {
     const body = await req.json();
@@ -908,6 +913,59 @@ serve(async (req) => {
 
     console.log('[Process-Topup] Creating order:', { game_name, package_name, player_id, g2bulk_product_id, is_preorder });
 
+    const { data: { user } } = await userClient.auth.getUser();
+    const userIdFromToken = user?.id ?? null;
+
+    if (user_id && user_id !== userIdFromToken) {
+      log('WARN', 'Suspicious user_id mismatch in create-order payload', {
+        requestUserId: user_id,
+        tokenUserId: userIdFromToken,
+      });
+    }
+
+    if (is_preorder && !userIdFromToken) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Authentication required for pre-order checkout' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const authoritativePackage = await resolveAuthoritativePackage(supabase, {
+      gameName: game_name,
+      packageName: package_name,
+      g2bulkProductId: g2bulk_product_id,
+      isPreorder: is_preorder === true,
+    });
+
+    if (!authoritativePackage) {
+      log('WARN', 'Invalid package selection during order creation', {
+        gameName: game_name,
+        packageName: package_name,
+        g2bulkProductId: g2bulk_product_id ?? null,
+        isPreorder: is_preorder === true,
+      });
+      return new Response(
+        JSON.stringify({ success: false, error: 'Invalid package selection' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const authoritativeAmount = Number(authoritativePackage.price);
+    const payloadAmount = Number(amount);
+    if (Number.isFinite(payloadAmount) && Math.abs(payloadAmount - authoritativeAmount) > 0.0001) {
+      log('WARN', 'Suspicious amount mismatch in create-order payload', {
+        orderType: is_preorder ? 'preorder' : 'topup',
+        gameName: game_name,
+        packageName: package_name,
+        payloadAmount,
+        authoritativeAmount,
+      });
+      return new Response(
+        JSON.stringify({ success: false, error: 'Amount does not match selected package price' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Determine which table to insert into
     const tableName = is_preorder ? 'preorder_orders' : 'topup_orders';
     const defaultStatus = is_preorder ? 'notpaid' : 'pending';
@@ -921,11 +979,11 @@ serve(async (req) => {
         player_id,
         server_id,
         player_name,
-        amount,
+        amount: authoritativeAmount,
         currency: currency || 'USD',
         payment_method,
-        g2bulk_product_id: g2bulk_product_id || null,
-        user_id: user_id || null,
+        g2bulk_product_id: authoritativePackage.g2bulkProductId || null,
+        user_id: userIdFromToken,
         status: defaultStatus,
         ...(is_preorder && scheduled_fulfill_at ? { scheduled_fulfill_at } : {}),
       })

@@ -122,9 +122,22 @@ serve(async (req) => {
     console.log("[Webhook] Payload:", JSON.stringify(payload, null, 2));
 
     const transactionId = payload.transaction_id || payload.transactionId || "N/A";
-    const amount = payload.amount || order.amount;
+    const amount = Number(payload.amount);
+    const orderAmount = Number(order.amount);
+    if (Number.isFinite(amount) && Math.abs(amount - orderAmount) > 0.0001) {
+      log('WARN', 'Suspicious webhook amount mismatch', {
+        orderId: order.id,
+        webhookAmount: amount,
+        orderAmount,
+        transactionId,
+      });
+      return new Response(
+        JSON.stringify({ status: "error", message: "Payment amount mismatch." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    console.log(`[Webhook] Processing payment - Amount: ${amount}, Tx ID: ${transactionId}`);
+    console.log(`[Webhook] Processing payment - Amount: ${orderAmount}, Tx ID: ${transactionId}`);
 
     // 6. Update order status to "paid" - the DB trigger will auto-call process-topup
     // IMPORTANT: We only update status here. The trigger_process_topup_on_paid handles fulfillment.
@@ -144,7 +157,7 @@ serve(async (req) => {
         throw updateError;
       }
 
-      log('INFO', `Payment recorded for Order #${order.id}`, { transactionId, amount });
+      log('INFO', `Payment recorded for Order #${order.id}`, { transactionId, amount: orderAmount });
       console.log(`[Webhook] Payment recorded. DB trigger will handle fulfillment for Order #${order.id}`);
 
       // 7. Success response - fulfillment is handled by DB trigger

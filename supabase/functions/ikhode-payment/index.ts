@@ -95,6 +95,42 @@ serve(async (req) => {
     switch (action) {
       case "generate-khqr": {
         const { amount, orderId, playerName, gameName } = params;
+        if (!orderId) {
+          return new Response(
+            JSON.stringify({ error: "orderId is required" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const { data: topupOrder } = await supabase
+          .from("topup_orders")
+          .select("id, amount")
+          .eq("id", orderId)
+          .maybeSingle();
+        const { data: preorderOrder } = topupOrder
+          ? { data: null }
+          : await supabase
+              .from("preorder_orders")
+              .select("id, amount")
+              .eq("id", orderId)
+              .maybeSingle();
+        const order = topupOrder ?? preorderOrder;
+        if (!order) {
+          return new Response(
+            JSON.stringify({ error: "Order not found" }),
+            { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+
+        const authoritativeAmount = Number(order.amount);
+        const payloadAmount = Number(amount);
+        if (Number.isFinite(payloadAmount) && Math.abs(payloadAmount - authoritativeAmount) > 0.0001) {
+          log('WARN', 'Suspicious KHQR payload amount mismatch', {
+            orderId,
+            payloadAmount,
+            authoritativeAmount,
+          });
+        }
 
         // Build callback URL - use custom URL if configured, otherwise default
         const defaultCallbackUrl = `${supabaseUrl}/functions/v1/ikhode-webhook/${orderId}`;
@@ -106,13 +142,13 @@ serve(async (req) => {
         const shortTransactionId = `ORD-${orderId.slice(0, 8)}-${Date.now().toString().slice(-6)}`;
 
         console.log(`[Ikhode] Generating KHQR:`);
-        console.log(`  - Amount: ${amount}`);
+        console.log(`  - Amount: ${authoritativeAmount}`);
         console.log(`  - Order ID: ${orderId}`);
         console.log(`  - Short Transaction ID: ${shortTransactionId}`);
         console.log(`  - Callback URL: ${callbackUrl}`);
 
         // Round amount to 2 decimal places to avoid floating point issues
-        const roundedAmount = Math.round(Number(amount) * 100) / 100;
+        const roundedAmount = Math.round(authoritativeAmount * 100) / 100;
 
         // Call Node.js API
         const response = await fetch(`${apiUrl}/generate-khqr`, {
@@ -161,7 +197,7 @@ serve(async (req) => {
           qrCodeData,
           wsUrl,
           orderId,
-          amount,
+          amount: roundedAmount,
         }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
