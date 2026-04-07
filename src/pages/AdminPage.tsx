@@ -516,6 +516,13 @@ const AdminPage: React.FC = () => {
                 <Database className="w-4 h-4 mr-2 shrink-0" />
                 <span>Backup</span>
               </TabsTrigger>
+              <TabsTrigger
+                value="cdn-migration"
+                className="w-full justify-start data-[state=active]:bg-gold data-[state=active]:text-primary-foreground text-xs sm:text-sm"
+              >
+                <CloudUpload className="w-4 h-4 mr-2 shrink-0" />
+                <span>CDN</span>
+              </TabsTrigger>
             </TabsList>
 
             <div className="flex-1 min-w-0">
@@ -2777,6 +2784,11 @@ const AdminPage: React.FC = () => {
             {/* Database Backup */}
             <TabsContent value="backup">
               <DatabaseExportImport />
+            </TabsContent>
+
+            {/* CDN Migration */}
+            <TabsContent value="cdn-migration">
+              <CdnMigrationTab />
             </TabsContent>
 
             {/* Font Settings */}
