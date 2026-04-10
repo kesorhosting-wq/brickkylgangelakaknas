@@ -24,6 +24,28 @@ function log(level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG', message: string, data?:
   }
 }
 
+// Telegram notification helper
+async function sendTelegramNotification(message: string, isError: boolean = false) {
+  const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
+  const chatId = Deno.env.get('TELEGRAM_CHAT_ID');
+  if (!botToken || !chatId) return;
+
+  const emoji = isError ? '❌' : '✅';
+  try {
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: `${emoji} ${message}`,
+        parse_mode: 'HTML'
+      })
+    });
+  } catch (e) {
+    console.error('[Telegram] Error:', e);
+  }
+}
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
@@ -160,6 +182,18 @@ serve(async (req) => {
       log('INFO', `Payment recorded for Order #${order.id}`, { transactionId, amount: orderAmount });
       console.log(`[Webhook] Payment recorded. DB trigger will handle fulfillment for Order #${order.id}`);
 
+      // Send Telegram notification for KHQR payment received
+      await sendTelegramNotification(
+        `<b>KHQR Payment Received</b>\n` +
+        `🎮 Game: ${order.game_name}\n` +
+        `📦 Package: ${order.package_name}\n` +
+        `👤 Player: ${order.player_id}${order.server_id ? ` (Server: ${order.server_id})` : ''}\n` +
+        `💰 Amount: $${orderAmount}\n` +
+        `🔢 Order: ${order.id}\n` +
+        `💳 Tx: ${transactionId}\n` +
+        `📋 Type: ${orderTable === 'preorder_orders' ? 'Pre-order' : 'Top-up'}`
+      );
+
       // 7. Success response - fulfillment is handled by DB trigger
       return new Response(
         JSON.stringify({ status: "success", message: "Payment recorded successfully. Fulfillment triggered." }),
@@ -168,6 +202,18 @@ serve(async (req) => {
 
     } catch (paymentError: any) {
       console.error(`[Webhook] FATAL PAYMENT ERROR for Order #${order.id}:`, paymentError);
+      
+      await sendTelegramNotification(
+        `<b>KHQR Payment Error</b>\n` +
+        `🎮 Game: ${order.game_name}\n` +
+        `📦 Package: ${order.package_name}\n` +
+        `👤 Player: ${order.player_id}\n` +
+        `💰 Amount: $${Number(order.amount)}\n` +
+        `🔢 Order: ${order.id}\n` +
+        `⚠️ Error: ${paymentError.message || 'Unknown error'}`,
+        true
+      );
+      
       return new Response(
         JSON.stringify({ status: "error", message: "Internal Server Error during payment processing." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
