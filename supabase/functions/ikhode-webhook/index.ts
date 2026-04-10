@@ -183,15 +183,32 @@ serve(async (req) => {
       console.log(`[Webhook] Payment recorded. DB trigger will handle fulfillment for Order #${order.id}`);
 
       // Send Telegram notification for KHQR payment received
+      // Fetch user profile for email & display name
+      let userEmail = '';
+      let userName = '';
+      if (order.user_id) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('email, display_name')
+          .eq('user_id', order.user_id)
+          .maybeSingle();
+        userEmail = profile?.email || '';
+        userName = profile?.display_name || '';
+      }
+
       await sendTelegramNotification(
-        `<b>KHQR Payment Received</b>\n` +
-        `🎮 Game: ${order.game_name}\n` +
-        `📦 Package: ${order.package_name}\n` +
-        `👤 Player: ${order.player_id}${order.server_id ? ` (Server: ${order.server_id})` : ''}\n` +
-        `💰 Amount: $${orderAmount}\n` +
-        `🔢 Order: ${order.id}\n` +
-        `💳 Tx: ${transactionId}\n` +
-        `📋 Type: ${orderTable === 'preorder_orders' ? 'Pre-order' : 'Top-up'}`
+        `<b>💳 KHQR Payment Received</b>\n\n` +
+        `🆔 <b>Order:</b> <code>${order.id}</code>\n` +
+        `🎮 <b>Game:</b> ${order.game_name}\n` +
+        `📦 <b>Package:</b> ${order.package_name}\n` +
+        `👤 <b>Player ID:</b> ${order.player_id}\n` +
+        `${order.server_id ? `🌐 <b>Server ID:</b> ${order.server_id}\n` : ''}` +
+        `${order.player_name ? `📛 <b>Player Name:</b> ${order.player_name}\n` : ''}` +
+        `💰 <b>Amount:</b> $${orderAmount}\n` +
+        `${userName ? `👨‍💻 <b>Customer:</b> ${userName}\n` : ''}` +
+        `${userEmail ? `📧 <b>Email:</b> ${userEmail}\n` : ''}` +
+        `💳 <b>Transaction:</b> ${transactionId}\n` +
+        `📋 <b>Type:</b> ${orderTable === 'preorder_orders' ? 'Pre-order' : 'Top-up'}`
       );
 
       // 7. Success response - fulfillment is handled by DB trigger
