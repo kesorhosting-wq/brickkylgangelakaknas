@@ -226,3 +226,18 @@
     background: linear-gradient(45deg, hsl(var(--gold)) 0%, hsl(var(--gold-light)) 50%, hsl(var(--gold)) 100%);
   }
 }
+
+@keyframes flowerFall {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(calc(100vh + 80px)); }
+}
+
+@keyframes flowerSway {
+  0% { margin-left: 0; }
+  100% { margin-left: var(--sway, 40px); }
+}
+
+@keyframes flowerSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
