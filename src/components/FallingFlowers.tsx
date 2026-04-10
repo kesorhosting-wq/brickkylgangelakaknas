@@ -42,18 +42,17 @@ const FallingFlowers: React.FC = () => {
   useEffect(() => {
     // Initial batch
     const initial: Petal[] = [];
-    for (let i = 0; i < 12; i++) {
-      initial.push({ ...createPetal(), delay: Math.random() * 8 });
+    for (let i = 0; i < 25; i++) {
+      initial.push({ ...createPetal(), delay: Math.random() * 6 });
     }
     setPetals(initial);
 
-    // Spawn new petals periodically
     const interval = setInterval(() => {
       setPetals(prev => {
-        const filtered = prev.length > 20 ? prev.slice(-16) : prev;
-        return [...filtered, createPetal()];
+        const filtered = prev.length > 50 ? prev.slice(-40) : prev;
+        return [...filtered, createPetal(), createPetal()];
       });
-    }, 1500);
+    }, 600);
 
     return () => clearInterval(interval);
   }, [createPetal]);
