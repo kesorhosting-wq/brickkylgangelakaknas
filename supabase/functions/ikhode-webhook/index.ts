@@ -24,6 +24,28 @@ function log(level: 'INFO' | 'WARN' | 'ERROR' | 'DEBUG', message: string, data?:
   }
 }
 
+// Telegram notification helper
+async function sendTelegramNotification(message: string, isError: boolean = false) {
+  const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN');
+  const chatId = Deno.env.get('TELEGRAM_CHAT_ID');
+  if (!botToken || !chatId) return;
+
+  const emoji = isError ? '❌' : '✅';
+  try {
+    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: `${emoji} ${message}`,
+        parse_mode: 'HTML'
+      })
+    });
+  } catch (e) {
+    console.error('[Telegram] Error:', e);
+  }
+}
+
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
