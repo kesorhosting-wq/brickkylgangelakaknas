@@ -182,6 +182,18 @@ serve(async (req) => {
       log('INFO', `Payment recorded for Order #${order.id}`, { transactionId, amount: orderAmount });
       console.log(`[Webhook] Payment recorded. DB trigger will handle fulfillment for Order #${order.id}`);
 
+      // Send Telegram notification for KHQR payment received
+      await sendTelegramNotification(
+        `<b>KHQR Payment Received</b>\n` +
+        `🎮 Game: ${order.game_name}\n` +
+        `📦 Package: ${order.package_name}\n` +
+        `👤 Player: ${order.player_id}${order.server_id ? ` (Server: ${order.server_id})` : ''}\n` +
+        `💰 Amount: $${orderAmount}\n` +
+        `🔢 Order: ${order.id}\n` +
+        `💳 Tx: ${transactionId}\n` +
+        `📋 Type: ${orderTable === 'preorder_orders' ? 'Pre-order' : 'Top-up'}`
+      );
+
       // 7. Success response - fulfillment is handled by DB trigger
       return new Response(
         JSON.stringify({ status: "success", message: "Payment recorded successfully. Fulfillment triggered." }),
