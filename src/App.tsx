@@ -9,6 +9,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import CustomFontLoader from "./components/CustomFontLoader";
+import FallingFlowers from "./components/FallingFlowers";
 import Index from "./pages/Index";
 import TopupPage from "./pages/TopupPage";
 import CheckoutPage from "./pages/CheckoutPage";
@@ -31,6 +32,7 @@ const App = () => (
             <CartProvider>
               <TooltipProvider>
                 <CustomFontLoader />
+                <FallingFlowers />
                 <Toaster />
                 <Sonner />
                 <Routes>
