@@ -202,6 +202,18 @@ serve(async (req) => {
 
     } catch (paymentError: any) {
       console.error(`[Webhook] FATAL PAYMENT ERROR for Order #${order.id}:`, paymentError);
+      
+      await sendTelegramNotification(
+        `<b>KHQR Payment Error</b>\n` +
+        `🎮 Game: ${order.game_name}\n` +
+        `📦 Package: ${order.package_name}\n` +
+        `👤 Player: ${order.player_id}\n` +
+        `💰 Amount: $${Number(order.amount)}\n` +
+        `🔢 Order: ${order.id}\n` +
+        `⚠️ Error: ${paymentError.message || 'Unknown error'}`,
+        true
+      );
+      
       return new Response(
         JSON.stringify({ status: "error", message: "Internal Server Error during payment processing." }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
