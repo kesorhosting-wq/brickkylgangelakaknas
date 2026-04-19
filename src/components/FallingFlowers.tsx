@@ -35,7 +35,7 @@ const FallingFlowers: React.FC = () => {
       delay: 0,
       swayAmount: 30 + Math.random() * 60,
       rotation: Math.random() * 360,
-      opacity: 0.05 + Math.random() * 0.05, // 90-95% transparent
+      opacity: 0.15 + Math.random() * 0.05, // 15-20% opacity
     };
   }, []);
 
