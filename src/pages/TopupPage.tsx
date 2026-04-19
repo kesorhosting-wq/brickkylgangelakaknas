@@ -1288,7 +1288,7 @@ const TopupPage: React.FC = () => {
                 </span>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:gap-5">
                 {[...game.specialPackages]
                   .sort((a, b) => a.price - b.price)
                   .map((pkg, index) => (
@@ -1322,13 +1322,13 @@ const TopupPage: React.FC = () => {
 
             {game.packages.length === 0 ? (
               /* Show skeleton placeholders while packages might be loading */
-              <div className="grid grid-cols-2 gap-2 sm:gap-4">
-                {[...Array(6)].map((_, i) => (
-                  <Skeleton key={i} className="h-12 sm:h-14 rounded-lg" />
+              <div className="grid grid-cols-1 gap-3 sm:gap-5">
+                {[...Array(4)].map((_, i) => (
+                  <Skeleton key={i} className="h-20 sm:h-24 rounded-lg" />
                 ))}
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2 sm:gap-4">
+              <div className="grid grid-cols-1 gap-3 sm:gap-5">
                 {[...game.packages]
                   .sort((a, b) => a.price - b.price)
                   .map((pkg, index) => (
