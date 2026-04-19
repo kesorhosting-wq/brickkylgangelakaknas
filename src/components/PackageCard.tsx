@@ -108,7 +108,7 @@ const PackageCard: React.FC<PackageCardProps> = ({ pkg, selected, onSelect, prio
           "shadow-md hover:shadow-lg transition-shadow"
         )}
         style={{
-          height: `${Math.min(settings.packageHeight || 48, window.innerWidth < 640 ? 40 : settings.packageHeight || 48)}px`,
+          height: `${Math.min(settings.packageHeight || 80, window.innerWidth < 640 ? 60 : settings.packageHeight || 80)}px`,
           background: settings.packageBgImage 
             ? `url(${settings.packageBgImage})` 
             : settings.packageBgColor 
