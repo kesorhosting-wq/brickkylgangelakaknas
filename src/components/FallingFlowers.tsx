@@ -4,8 +4,6 @@ const FLOWER_IMAGES = [
   '/images/flower1.png',
   '/images/flower2.png',
   '/images/flower3.png',
-  '/images/flower4.png',
-  '/images/flower5.png',
 ];
 
 interface Petal {
